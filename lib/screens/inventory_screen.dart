@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../models/inventory_item.dart';
 import '../services/inventory_service.dart';
+import 'item_details_screen.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -148,7 +149,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ],
         ),
         onTap: () {
-          // TODO: Navigate to the Item Details screen
+          Navigator.of(context).push(
+            MaterialPageRoute(
+            // Pass the SKU to the details screen
+            builder: (context) => ItemDetailsScreen(sku: item.sku),
+            ),
+          );
         },
       ),
     );

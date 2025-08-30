@@ -27,7 +27,6 @@ class ItemDetails {
   final double sellingPrice;
   final String margin;
   final List<StockHistoryEntry> stockHistory;
-  final String imageUrl; // For the item image
 
   ItemDetails({
     required this.name,
@@ -40,6 +39,5 @@ class ItemDetails {
     required this.sellingPrice,
     required this.margin,
     required this.stockHistory,
-    required this.imageUrl,
   });
 }

@@ -18,7 +18,6 @@ class ItemDetailsService {
       purchasePrice: 85.00,
       sellingPrice: 120.00,
       margin: '29.17%',
-      imageUrl: 'https://via.placeholder.com/150', // Placeholder image URL
       stockHistory: [
         StockHistoryEntry(
           type: 'Stock In',

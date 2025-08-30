@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/item_details.dart';
 import '../services/item_details_service.dart';
 import 'edit_item_screen.dart';
+import '../widgets/adjust_stock_overlay.dart';
+import '../widgets/delete_confirmation_overlay.dart';
 
 class ItemDetailsScreen extends StatefulWidget {
   final String sku;
@@ -21,12 +23,49 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
     _detailsFuture = ItemDetailsService().fetchItemDetails(widget.sku);
   }
 
+  // Method to show the Adjust Stock overlay
+  void _showAdjustStockOverlay(ItemDetails item) async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return AdjustStockOverlay(currentStock: item.currentStock);
+      },
+    );
+
+    if (result == true) {
+      // If the user confirms an adjustment, refresh the item details
+      setState(() {
+        _detailsFuture = ItemDetailsService().fetchItemDetails(widget.sku);
+      });
+    }
+  }
+
+  // Method to show the Delete confirmation overlay
+  void _showDeleteConfirmation(ItemDetails item) async {
+    final bool? confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return DeleteConfirmationOverlay(itemName: item.name);
+      },
+    );
+
+    if (confirmed == true) {
+      // TODO: Call a service to delete the item from the backend.
+      // After successful deletion, navigate back to the inventory list.
+      if (mounted) {
+         Navigator.of(context).pop();
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<ItemDetails>(
       future: _detailsFuture,
       builder: (context, snapshot) {
-        // Show a loading indicator while fetching data
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
             appBar: AppBar(backgroundColor: Colors.transparent),
@@ -34,7 +73,6 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
           );
         }
         
-        // Show an error message if something went wrong
         if (snapshot.hasError) {
           return Scaffold(
             appBar: AppBar(title: const Text('Error')),
@@ -42,10 +80,8 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
           );
         }
         
-        // Once data is available, build the full Scaffold
         if (snapshot.hasData) {
           final item = snapshot.data!;
-          
           
           return Scaffold(
             appBar: AppBar(
@@ -54,9 +90,7 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
               elevation: 0,
               actions: [
                 IconButton(
-                  onPressed: () {
-                    // TODO: Show delete confirmation dialog
-                  },
+                  onPressed: () => _showDeleteConfirmation(item),
                   icon: const Icon(Icons.delete_outline),
                 ),
               ],
@@ -75,12 +109,10 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                 ],
               ),
             ),
-            // The 'item' variable is now in scope for the bottom navigation bar
             bottomNavigationBar: _buildActionButtons(item),
           );
         }
         
-        // Fallback for when there's no data
         return Scaffold(
           appBar: AppBar(title: const Text('Not Found')),
           body: const Center(child: Text('Item not found.')),
@@ -96,8 +128,6 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
-            //             Image.network(item.imageUrl, width: 60, height: 60, fit: BoxFit.cover),
-            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,7 +173,7 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
             const Divider(color: Colors.grey),
             _buildDetailRow('Selling Price', '₹${item.sellingPrice.toStringAsFixed(2)}'),
             const Divider(color: Colors.grey),
-            _buildDetailRow('Margin', '${item.margin}'),
+            _buildDetailRow('Margin', item.margin),
           ],
         ),
       ),
@@ -209,7 +239,6 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
       ),
     );
   }
-
   
   Widget _buildActionButtons(ItemDetails item) {
     return Container(
@@ -222,7 +251,6 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    // FIX 2: Use the named parameter 'item:'
                     builder: (context) => EditItemScreen(item: item),
                   ),
                 );
@@ -239,9 +267,7 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
           const SizedBox(width: 16),
           Expanded(
             child: ElevatedButton(
-              onPressed: () {
-                // TODO: Show Adjust Stock overlay
-              },
+              onPressed: () => _showAdjustStockOverlay(item),
               child: const Text('Adjust Stock'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),

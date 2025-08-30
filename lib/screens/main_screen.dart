@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/custom_nav_bar.dart'; // Import the new widget
 import 'dashboard_screen.dart';
-//import 'inventory_screen.dart';
+import 'inventory_screen.dart';
 import 'assistant_screen.dart';
 //import 'chat_screen.dart';
 //import 'settings_screen.dart';
@@ -20,7 +20,7 @@ class _MainScreenState extends State<MainScreen> {
   // List of the main screens in your app
   static const List<Widget> _pages = <Widget>[
     DashboardScreen(),
-    //InventoryScreen(),
+    InventoryScreen(),
     AssistantScreen(),
     //ChatScreen(),
     //SettingsScreen(),

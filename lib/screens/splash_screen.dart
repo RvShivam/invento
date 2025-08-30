@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:invento_app/screens/main_screen.dart';
 import 'signup_screen.dart';
-import 'main_screen.dart';
+
 
 
 class SplashScreen extends StatefulWidget {

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../models/item_details.dart';
 import '../services/item_details_service.dart';
+import 'edit_item_screen.dart';
 
 class ItemDetailsScreen extends StatefulWidget {
   final String sku;
@@ -22,30 +23,45 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ergonomic Mouse'), // This could be dynamic
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            onPressed: () {
-              // TODO: Show delete confirmation dialog
-            },
-            icon: const Icon(Icons.delete_outline),
-          ),
-        ],
-      ),
-      body: FutureBuilder<ItemDetails>(
-        future: _detailsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (snapshot.hasData) {
-            final item = snapshot.data!;
-            return SingleChildScrollView(
+    return FutureBuilder<ItemDetails>(
+      future: _detailsFuture,
+      builder: (context, snapshot) {
+        // Show a loading indicator while fetching data
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            appBar: AppBar(backgroundColor: Colors.transparent),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+        
+        // Show an error message if something went wrong
+        if (snapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Error')),
+            body: Center(child: Text('Error: ${snapshot.error}')),
+          );
+        }
+        
+        // Once data is available, build the full Scaffold
+        if (snapshot.hasData) {
+          final item = snapshot.data!;
+          
+          
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(item.name), 
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              actions: [
+                IconButton(
+                  onPressed: () {
+                    // TODO: Show delete confirmation dialog
+                  },
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              ],
+            ),
+            body: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
@@ -58,13 +74,18 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                   _buildStockHistoryCard(item),
                 ],
               ),
-            );
-          }
-          return const Center(child: Text('Item not found.'));
-        },
-      ),
-      // Bottom navigation for action buttons
-      bottomNavigationBar: _buildActionButtons(),
+            ),
+            // The 'item' variable is now in scope for the bottom navigation bar
+            bottomNavigationBar: _buildActionButtons(item),
+          );
+        }
+        
+        // Fallback for when there's no data
+        return Scaffold(
+          appBar: AppBar(title: const Text('Not Found')),
+          body: const Center(child: Text('Item not found.')),
+        );
+      },
     );
   }
 
@@ -189,16 +210,22 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
     );
   }
 
-  Widget _buildActionButtons() {
+  
+  Widget _buildActionButtons(ItemDetails item) {
     return Container(
       padding: const EdgeInsets.all(16.0),
-      color: Colors.transparent, // Or your scaffold background color
+      color: Colors.transparent,
       child: Row(
         children: [
           Expanded(
             child: OutlinedButton.icon(
               onPressed: () {
-                // TODO: Navigate to Edit Item screen
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    // FIX 2: Use the named parameter 'item:'
+                    builder: (context) => EditItemScreen(item: item),
+                  ),
+                );
               },
               icon: const Icon(Icons.edit),
               label: const Text('Edit Item'),

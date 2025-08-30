@@ -1,6 +1,6 @@
 // lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
-import 'dashboard_screen.dart';
+import 'main_screen.dart';
 import 'forgot_password_screen.dart'; // Import the new screen
 
 class LoginScreen extends StatefulWidget {
@@ -19,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _logIn() {
     if (_formKey.currentState!.validate()) {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      MaterialPageRoute(builder: (context) => const MainScreen()),
     );
     }
   }

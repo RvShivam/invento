@@ -1,7 +1,7 @@
 // lib/screens/signup_screen.dart
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
-import 'dashboard_screen.dart';
+import 'main_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -22,7 +22,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     // For now, we'll just navigate to the dashboard.
      if (_formKey.currentState!.validate()) {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      MaterialPageRoute(builder: (context) => const MainScreen()),
     );
   }
   }

@@ -1,8 +1,10 @@
 // lib/screens/splash_screen.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:invento_app/screens/main_screen.dart';
 import 'signup_screen.dart';
-import 'dashboard_screen.dart';
+import 'main_screen.dart';
+
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -27,7 +29,7 @@ class _SplashScreenState extends State<SplashScreen> {
       // After 4 seconds, navigate based on the login status
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => _isUserLoggedIn ? const DashboardScreen() : const SignUpScreen(),
+          builder: (context) => _isUserLoggedIn ? const MainScreen() : const SignUpScreen(),
         ),
       );
     });

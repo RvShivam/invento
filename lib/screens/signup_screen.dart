@@ -11,6 +11,7 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -19,9 +20,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void _signUp() {
     // In a real app, you'd add validation and call your auth service here.
     // For now, we'll just navigate to the dashboard.
+     if (_formKey.currentState!.validate()) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => const DashboardScreen()),
     );
+  }
   }
 
   @override
@@ -31,6 +34,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: _formKey,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -52,19 +57,34 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ),
                 const SizedBox(height: 40),
-                TextField(
+                TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(hintText: 'Your Name'),
                   keyboardType: TextInputType.name,
+                  validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter your name';
+                      }
+                      return null;
+                    },
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(hintText: 'Email Address'),
                   keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter your email';
+                      }
+                      if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                        return 'Please enter a valid email';
+                      }
+                      return null;
+                    },
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                TextFormField(
                   controller: _passwordController,
                   obscureText: !_isPasswordVisible,
                   decoration: InputDecoration(
@@ -81,6 +101,39 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       },
                     ),
                   ),
+                        validator: (value) {
+  if (value == null || value.trim().isEmpty) {
+    return 'Please enter your password';
+  }
+
+  // Minimum 8 characters
+  if (value.length < 8) {
+    return 'Password must be at least 8 characters long';
+  }
+
+  // At least one uppercase letter
+  if (!RegExp(r'[A-Z]').hasMatch(value)) {
+    return 'Password must contain at least one uppercase letter';
+  }
+
+  // At least one lowercase letter
+  if (!RegExp(r'[a-z]').hasMatch(value)) {
+    return 'Password must contain at least one lowercase letter';
+  }
+
+  // At least one digit
+  if (!RegExp(r'[0-9]').hasMatch(value)) {
+    return 'Password must contain at least one number';
+  }
+
+  // At least one special character
+  if (!RegExp(r'[!@#\$&*~]').hasMatch(value)) {
+    return 'Password must contain at least one special character (!@#\$&*~)';
+  }
+
+  return null; // ✅ Valid password
+},
+
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton(
@@ -113,7 +166,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 )
               ],
             ),
-          ),
+          ),),
         ),
       ),
     );

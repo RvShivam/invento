@@ -17,6 +17,8 @@ class _EditItemScreenState extends State<EditItemScreen> {
   late TextEditingController _categoryController;
   late TextEditingController _supplierController;
   late TextEditingController _stockController;
+  late TextEditingController _purchasePriceController;
+  late TextEditingController _sellingPriceController;
 
   @override
   void initState() {
@@ -26,17 +28,22 @@ class _EditItemScreenState extends State<EditItemScreen> {
     _skuController = TextEditingController(text: widget.item.sku);
     _categoryController = TextEditingController(text: widget.item.category);
     _supplierController = TextEditingController(text: widget.item.supplier);
-    _stockController = TextEditingController(text: '${widget.item.currentStock} units');
+    _stockController = TextEditingController(text: '${widget.item.currentStock}');
+    _purchasePriceController = TextEditingController(
+        text: widget.item.purchasePrice?.toString() ?? '');
+    _sellingPriceController = TextEditingController(
+        text: widget.item.sellingPrice?.toString() ?? '');
   }
 
   @override
   void dispose() {
-    // Dispose controllers to free up resources
     _nameController.dispose();
     _skuController.dispose();
     _categoryController.dispose();
     _supplierController.dispose();
     _stockController.dispose();
+    _purchasePriceController.dispose();
+    _sellingPriceController.dispose();
     super.dispose();
   }
 
@@ -65,8 +72,23 @@ class _EditItemScreenState extends State<EditItemScreen> {
             const SizedBox(height: 16),
             _buildTextField(label: 'Supplier', controller: _supplierController),
             const SizedBox(height: 16),
-            // Make the Current Stock field read-only
-            _buildTextField(label: 'Current Stock', controller: _stockController, readOnly: true),
+            _buildTextField(
+              label: 'Current Stock',
+              controller: _stockController,
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+            _buildTextField(
+              label: 'Purchasing Price',
+              controller: _purchasePriceController,
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+            _buildTextField(
+              label: 'Selling Price',
+              controller: _sellingPriceController,
+              keyboardType: TextInputType.number,
+            ),
           ],
         ),
       ),
@@ -75,7 +97,12 @@ class _EditItemScreenState extends State<EditItemScreen> {
   }
 
   // Helper widget to create a styled text field with a label
-  Widget _buildTextField({required String label, required TextEditingController controller, bool readOnly = false}) {
+  Widget _buildTextField({
+    required String label,
+    required TextEditingController controller,
+    bool readOnly = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -84,6 +111,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
         TextField(
           controller: controller,
           readOnly: readOnly,
+          keyboardType: keyboardType,
           style: TextStyle(color: readOnly ? Colors.grey : Colors.white),
           decoration: InputDecoration(
             filled: true,
@@ -120,9 +148,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
             child: ElevatedButton(
               onPressed: () {
                 // TODO: Implement save logic here
-                // You would typically get the values: _nameController.text, etc.
-                // and send them to a service to update the backend.
-                Navigator.of(context).pop(); // Close screen after saving
+                Navigator.of(context).pop();
               },
               child: const Text('Save Changes'),
               style: ElevatedButton.styleFrom(

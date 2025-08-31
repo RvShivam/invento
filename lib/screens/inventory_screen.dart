@@ -5,6 +5,7 @@ import '../services/inventory_service.dart';
 import 'item_details_screen.dart';
 import '../widgets/filter_sort_overlay.dart';
 import '../models/filter_options.dart';
+import 'add_item.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -149,7 +150,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // TODO: Navigate to the Add Item screen
+          
+       Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AddItemScreen(
+          
+        ),
+      ),
+    );  
         },
         backgroundColor: Theme.of(context).colorScheme.primary,
         child: const Icon(Icons.add, color: Colors.white, size: 32),

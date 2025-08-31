@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 import 'package:flutter/services.dart'; // Needed for font loading
-import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../models/sales_transaction.dart';
 
@@ -33,7 +32,7 @@ class ReceiptService {
               pw.Text('Items Sold:', style: pw.TextStyle(font: ttf, fontWeight: pw.FontWeight.bold, fontSize: 16)),
               pw.SizedBox(height: 10),
               // Apply the custom font style to the table
-              pw.Table.fromTextArray(
+              pw.TableHelper.fromTextArray(
                 headerStyle: boldStyle,
                 cellStyle: customStyle,
                 headers: ['Item', 'Qty', 'Price', 'Total'],

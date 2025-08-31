@@ -1,11 +1,11 @@
 // lib/screens/main_screen.dart
 import 'package:flutter/material.dart';
-import '../widgets/custom_nav_bar.dart'; // Import the new widget
+import '../widgets/custom_nav_bar.dart';
 import 'dashboard_screen.dart';
 import 'inventory_screen.dart';
 import 'assistant_screen.dart';
 import 'report_hubs_screen.dart';
-//import 'settings_screen.dart';
+import 'settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -17,13 +17,13 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  // List of the main screens in your app
+  // List of the main screens in the app
   static const List<Widget> _pages = <Widget>[
     DashboardScreen(),
     InventoryScreen(),
     AssistantScreen(),
     ReportsHubScreen(),
-    //SettingsScreen(),
+    SettingsScreen(),
   ];
 
   // This function updates the state when a tab is tapped
@@ -38,7 +38,6 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       // The body displays the currently selected page
       body: _pages[_selectedIndex],
-      // Use your reusable bottom navigation bar here
       bottomNavigationBar: CustomBottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,

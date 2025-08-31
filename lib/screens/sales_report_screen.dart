@@ -115,18 +115,22 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
   }
 
   Widget _buildDateRangeSelector() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildFilterChip('Today', DateRange.today),
-          _buildFilterChip('Last 7 Days', DateRange.last7Days),
-          _buildFilterChip('Last 30 Days', DateRange.last30Days),
-        ],
-      ),
-    );
-  }
+  return SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+    child: Row(
+      children: [
+        _buildFilterChip('Today', DateRange.today),
+        const SizedBox(width: 8),
+        _buildFilterChip('Last 7 Days', DateRange.last7Days),
+        const SizedBox(width: 8),
+        _buildFilterChip('Last 30 Days', DateRange.last30Days),
+      ],
+    ),
+  );
+}
+
+
 
   Widget _buildFilterChip(String label, DateRange value) {
     final isSelected = _selectedRange == value;
@@ -146,15 +150,16 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
     );
   }
 
-  Widget _buildMetrics(SalesReportData data) {
+Widget _buildMetrics(SalesReportData data) {
     return Row(
       children: [
-        Expanded(child: _buildMetricCard('Total Revenue', '₹${data.totalRevenue.toStringAsFixed(2)}')),
+        Flexible(child: _buildMetricCard('Total Revenue', '₹${data.totalRevenue.toStringAsFixed(2)}')),
         const SizedBox(width: 16),
-        Expanded(child: _buildMetricCard('Number of Sales', data.numberOfSales.toString())),
+        Flexible(child: _buildMetricCard('Number of Sales', data.numberOfSales.toString())),
       ],
     );
   }
+
 
   Widget _buildMetricCard(String title, String value) {
     return Card(

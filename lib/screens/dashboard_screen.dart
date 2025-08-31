@@ -6,6 +6,7 @@ import '../services/dashboard_service.dart';
 import 'add_item.dart';
 import 'sales_management_screen.dart';
 import 'sales_report_screen.dart';
+import 'low_stock_report_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -114,10 +115,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Expanded(
               child: ElevatedButton(
                 onPressed: () {
-                  /*Navigator.push(
+                  Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const LowStockReportScreen()),
-                  );*/
+                  );
                 },
                 child: const Text('Low Stock'),
               ),

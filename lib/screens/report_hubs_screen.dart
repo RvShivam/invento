@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'sales_management_screen.dart';
 import 'sales_report_screen.dart';
-
+import 'low_stock_report_screen.dart';
 class ReportsHubScreen extends StatelessWidget {
   const ReportsHubScreen({super.key});
 
@@ -51,7 +51,11 @@ class ReportsHubScreen extends StatelessWidget {
             title: 'Low Stock Report',
             subtitle: 'See items that are running low on stock',
             onTap: () {
-              // TODO: Navigate to LowStockReportScreen
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const LowStockReportScreen(),
+                ),
+              );
             },
           ),
         ],

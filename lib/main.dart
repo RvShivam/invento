@@ -14,7 +14,7 @@ class InventoApp extends StatelessWidget {
     return MaterialApp(
       title: 'Invento',
       debugShowCheckedModeBanner: false,
-      // Define the dark theme based on your designs
+      
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF0F1217),
         colorScheme: const ColorScheme.dark(

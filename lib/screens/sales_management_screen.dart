@@ -1,8 +1,8 @@
-// lib/screens/sales_management_screen.dart
 import 'package:flutter/material.dart';
 import '../models/sales_transaction.dart';
 import '../services/sales_service.dart';
 import 'select_item_for_sale_screen.dart';
+import 'transaction_details_screen.dart';
 
 class SalesManagementScreen extends StatefulWidget {
   const SalesManagementScreen({super.key});
@@ -42,7 +42,6 @@ class _SalesManagementScreenState extends State<SalesManagementScreen> {
       setState(() {
         _isLoading = false;
       });
-      // Handle errors if necessary
     }
   }
 
@@ -97,7 +96,7 @@ class _SalesManagementScreenState extends State<SalesManagementScreen> {
                 ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-           Navigator.of(context).push(
+          Navigator.of(context).push(
             MaterialPageRoute(builder: (context) => const SelectItemsForSaleScreen()),
           );
         },
@@ -112,58 +111,68 @@ class _SalesManagementScreenState extends State<SalesManagementScreen> {
       color: const Color(0xFF1C1F2E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: const EdgeInsets.only(bottom: 16.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  transaction.orderId,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  '₹${transaction.totalAmount.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-              ],
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => TransactionDetailsScreen(transaction: transaction),
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Customer: ${transaction.customerName}',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Date: ${transaction.date}',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-            const Divider(height: 24, color: Colors.grey),
-            ...transaction.items.take(2).map((item) => Padding(
-              padding: const EdgeInsets.only(bottom: 4.0),
-              child: Row(
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('${item.quantity}x ${item.name}'),
-                  Text('₹${(item.quantity * item.price).toStringAsFixed(2)}'),
+                  Text(
+                    transaction.orderId,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    '₹${transaction.totalAmount.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
                 ],
               ),
-            )),
-            if (transaction.items.length > 2)
-              Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Text(
-                  '+ ${transaction.items.length - 2} more item(s)',
-                  style: const TextStyle(color: Colors.white70, fontStyle: FontStyle.italic),
-                ),
+              const SizedBox(height: 4),
+              Text(
+                'Customer: ${transaction.customerName}',
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
               ),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                'Date: ${transaction.date}',
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              const Divider(height: 24, color: Colors.grey),
+              ...transaction.items.take(2).map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: 4.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('${item.quantity}x ${item.name}'),
+                    Text('₹${(item.quantity * item.price).toStringAsFixed(2)}'),
+                  ],
+                ),
+              )),
+              if (transaction.items.length > 2)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: Text(
+                    '+ ${transaction.items.length - 2} more item(s)',
+                    style: const TextStyle(color: Colors.white70, fontStyle: FontStyle.italic),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

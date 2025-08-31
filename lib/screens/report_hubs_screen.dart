@@ -1,9 +1,7 @@
 // lib/screens/reports_hub_screen.dart
 import 'package:flutter/material.dart';
-
 import 'sales_management_screen.dart';
-// import 'sales_report_screen.dart';
-// import 'low_stock_report_screen.dart';
+import 'sales_report_screen.dart';
 
 class ReportsHubScreen extends StatelessWidget {
   const ReportsHubScreen({super.key});
@@ -40,7 +38,11 @@ class ReportsHubScreen extends StatelessWidget {
             title: 'Sales Report',
             subtitle: 'Analyze revenue and top selling items',
             onTap: () {
-              // TODO: Navigate to SalesReportScreen
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const SalesReportScreen(),
+                ),
+              );
             },
           ),
           _buildHubCard(

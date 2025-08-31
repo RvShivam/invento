@@ -5,6 +5,7 @@ import '../models/dashboard_data.dart';
 import '../services/dashboard_service.dart';
 import 'add_item.dart';
 import 'sales_management_screen.dart';
+import 'sales_report_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -130,8 +131,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Expanded(
               child: ElevatedButton(
                 onPressed: () {
-                  // TODO: Create and navigate to SalesReportScreen
-                  // Navigator.push(context, MaterialPageRoute(builder: (context) => const SalesReportScreen()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SalesReportScreen()),
+                  );
                 },
                 child: const Text('Sales Report'),
               ),

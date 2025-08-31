@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 import '../models/chat_message.dart';
 import '../services/rasa_service.dart';
 
@@ -15,15 +16,43 @@ class _AssistantScreenState extends State<AssistantScreen> {
   final RasaService _rasaService = RasaService();
   bool _isLoading = false;
 
+  final SpeechToText _speechToText = SpeechToText();
+  bool _speechEnabled = false;
+  bool _isListening = false;
+
   @override
   void initState() {
     super.initState();
+    _initSpeech();
     _addBotMessage("Hello! I am your Invento Assistant. How can I help you today?");
+  }
+
+  void _initSpeech() async {
+    _speechEnabled = await _speechToText.initialize();
+    setState(() {});
+  }
+
+  void _startListening() async {
+    await _speechToText.listen(onResult: (result) {
+      setState(() {
+        _controller.text = result.recognizedWords;
+      });
+      if (result.finalResult) {
+        _sendMessage();
+        _stopListening();
+      }
+    });
+    setState(() => _isListening = true);
+  }
+
+  void _stopListening() async {
+    await _speechToText.stop();
+    setState(() => _isListening = false);
   }
 
   void _addMessage(ChatMessage message) {
     setState(() {
-      _messages.add(message); // ✅ append instead of insert
+      _messages.add(message);
     });
   }
 
@@ -59,7 +88,6 @@ class _AssistantScreenState extends State<AssistantScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E1E1E),
         elevation: 0,
-        
         title: const Text("Invento Assistant", style: TextStyle(color: Colors.white)),
         centerTitle: true,
       ),
@@ -74,9 +102,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
               },
             ),
           ),
-
           if (_isLoading) _buildTypingIndicator(),
-
           _buildInputArea(),
         ],
       ),
@@ -112,7 +138,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
               onSubmitted: (_) => _sendMessage(),
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: "Type or tap the mic to speak...",
+                hintText: _isListening ? "Listening..." : "Type or tap the mic...",
                 hintStyle: const TextStyle(color: Colors.white54),
                 filled: true,
                 fillColor: const Color(0xFF3A3D4E),
@@ -126,13 +152,15 @@ class _AssistantScreenState extends State<AssistantScreen> {
           ),
           const SizedBox(width: 8),
           CircleAvatar(
-            backgroundColor: Colors.blueAccent,
+            backgroundColor: _isListening ? Colors.redAccent : Colors.blueAccent,
             radius: 24,
             child: IconButton(
-              icon: const Icon(Icons.mic, color: Colors.white),
-              onPressed: () {
-                // TODO: mic functionality
-              },
+              icon: Icon(_isListening ? Icons.stop : Icons.mic, color: Colors.white),
+              onPressed: !_speechEnabled
+                  ? null
+                  : _speechToText.isNotListening
+                      ? _startListening
+                      : _stopListening,
             ),
           )
         ],

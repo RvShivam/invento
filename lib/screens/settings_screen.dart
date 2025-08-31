@@ -3,6 +3,8 @@ import 'package:invento_app/screens/verification_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/delete_account_dialog.dart';
 import 'package:invento_app/screens/profile_screen.dart';
+import 'package:invento_app/screens/contact_us_screen.dart';
+import 'package:invento_app/screens/faq_screen.dart';
 
 Future<void> _launchURL(String url) async {
   final Uri uri = Uri.parse(url);
@@ -61,9 +63,11 @@ class SettingsScreen extends StatelessWidget {
           _buildSettingsCard(
             context: context,
             icon: Icons.help_outline,
-            title: 'Help Center',
+            title: 'FAQ',
             onTap: () {
-              // TODO: Open a URL or navigate to a Help screen
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const FAQScreen()),
+              );
             },
           ),
           _buildSettingsCard(
@@ -71,7 +75,9 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.contact_support_outlined,
             title: 'Contact Support',
             onTap: () {
-              // TODO: Launch email client or contact form
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const ContactUsScreen()),
+              );
             },
           ),
           _buildSettingsCard(

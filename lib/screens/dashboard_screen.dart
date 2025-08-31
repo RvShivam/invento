@@ -47,11 +47,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildInfoCard('Total Inventory Value', data.totalInventoryValue),
+                  SizedBox(
+                    width: double.infinity,
+                  child:_buildInfoCard('Total Inventory Value', data.totalInventoryValue),),
                   const SizedBox(height: 16),
-                  _buildInfoCard('Items Low on Stock', data.lowStockItems.toString()),
+                  SizedBox(
+                    width: double.infinity,
+                   child: _buildInfoCard('Items Low on Stock', data.lowStockItems.toString()),),
                   const SizedBox(height: 16),
-                  _buildInfoCard("Today's Sales", data.todaysSales),
+                  SizedBox(
+                    width: double.infinity,
+                  child:_buildInfoCard("Today's Sales", data.todaysSales),),
                   const SizedBox(height: 32),
                   const Text('Quick Actions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),

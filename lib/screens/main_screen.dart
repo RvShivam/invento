@@ -4,7 +4,7 @@ import '../widgets/custom_nav_bar.dart'; // Import the new widget
 import 'dashboard_screen.dart';
 import 'inventory_screen.dart';
 import 'assistant_screen.dart';
-//import 'chat_screen.dart';
+import 'report_hubs_screen.dart';
 //import 'settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -22,7 +22,7 @@ class _MainScreenState extends State<MainScreen> {
     DashboardScreen(),
     InventoryScreen(),
     AssistantScreen(),
-    //ChatScreen(),
+    ReportsHubScreen(),
     //SettingsScreen(),
   ];
 

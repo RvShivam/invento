@@ -31,8 +31,8 @@ class CustomBottomNavBar extends StatelessWidget {
           label: 'Assistant',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.report_problem_outlined),
-          activeIcon: Icon(Icons.report_problem),
+          icon: Icon(Icons.bar_chart_outlined),
+          activeIcon: Icon(Icons.bar_chart),
           label: 'Report',
         ),
         BottomNavigationBarItem(

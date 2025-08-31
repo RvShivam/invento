@@ -1,10 +1,10 @@
 // lib/screens/dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:invento_app/screens/inventory_screen.dart';
 import '../models/dashboard_data.dart';
 import '../services/dashboard_service.dart';
 import 'add_item.dart';
+import 'sales_management_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -53,7 +53,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 32),
                   const Text('Quick Actions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
-                  _buildQuickActions(),
+                  _buildQuickActions(context),
                   const SizedBox(height: 32),
                   _buildStatsGrid(data),
                   const SizedBox(height: 16),
@@ -91,36 +91,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildQuickActions() {
+  Widget _buildQuickActions(BuildContext context) {
     return Column(
       children: [
         Row(
           children: [
-            Expanded(child: ElevatedButton.icon(onPressed: () { Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const AddItemScreen(
-          
-        ),
-      ),
-    );  }, icon: const Icon(Icons.add), label: const Text('Add Item'))),
+            // 1. Add New Item
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AddItemScreen()),
+                  );
+                },
+                child: const Text('Add Item'),
+              ),
+            ),
             const SizedBox(width: 16),
-            Expanded(child: ElevatedButton(onPressed: () {}, child: const Text('Record Sale'))),
+            // 2. Low Stock Report
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  /*Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LowStockReportScreen()),
+                  );*/
+                },
+                child: const Text('Low Stock'),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: ElevatedButton(onPressed: () { Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const InventoryScreen(
-          
-        ),
-      ),
-    ); }, child: const Text('View Inventory'))),
+            // 3. Sales Report
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  // TODO: Create and navigate to SalesReportScreen
+                  // Navigator.push(context, MaterialPageRoute(builder: (context) => const SalesReportScreen()));
+                },
+                child: const Text('Sales Report'),
+              ),
+            ),
             const SizedBox(width: 16),
-            Expanded(child: ElevatedButton(onPressed: () {}, child: const Text('View Reports'))),
+            // 4. Manage Sales
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SalesManagementScreen()),
+                  );
+                },
+                child: const Text('Manage Sales'),
+              ),
+            ),
           ],
         ),
       ],

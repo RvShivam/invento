@@ -1,8 +1,10 @@
 // lib/screens/dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:invento_app/screens/inventory_screen.dart';
 import '../models/dashboard_data.dart';
 import '../services/dashboard_service.dart';
+import 'add_item.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -69,6 +71,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
+  
 
   Widget _buildInfoCard(String title, String value) {
     return Card(
@@ -93,7 +96,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         Row(
           children: [
-            Expanded(child: ElevatedButton.icon(onPressed: () {}, icon: const Icon(Icons.add), label: const Text('Add Item'))),
+            Expanded(child: ElevatedButton.icon(onPressed: () { Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AddItemScreen(
+          
+        ),
+      ),
+    );  }, icon: const Icon(Icons.add), label: const Text('Add Item'))),
             const SizedBox(width: 16),
             Expanded(child: ElevatedButton(onPressed: () {}, child: const Text('Record Sale'))),
           ],
@@ -101,7 +111,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: ElevatedButton(onPressed: () {}, child: const Text('View Inventory'))),
+            Expanded(child: ElevatedButton(onPressed: () { Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const InventoryScreen(
+          
+        ),
+      ),
+    ); }, child: const Text('View Inventory'))),
             const SizedBox(width: 16),
             Expanded(child: ElevatedButton(onPressed: () {}, child: const Text('View Reports'))),
           ],

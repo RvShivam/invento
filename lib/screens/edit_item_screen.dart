@@ -30,9 +30,9 @@ class _EditItemScreenState extends State<EditItemScreen> {
     _supplierController = TextEditingController(text: widget.item.supplier);
     _stockController = TextEditingController(text: '${widget.item.currentStock}');
     _purchasePriceController = TextEditingController(
-        text: widget.item.purchasePrice?.toString() ?? '');
+        text: widget.item.purchasePrice.toString());
     _sellingPriceController = TextEditingController(
-        text: widget.item.sellingPrice?.toString() ?? '');
+        text: widget.item.sellingPrice.toString());
   }
 
   @override

@@ -1,10 +1,12 @@
-// lib/screens/verification_screen.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../services/auth_service.dart';
 import 'reset_password_screen.dart';
 
 class VerificationScreen extends StatefulWidget {
-  const VerificationScreen({super.key});
+  final String email;
+  const VerificationScreen({super.key, required this.email});
 
   @override
   State<VerificationScreen> createState() => _VerificationScreenState();
@@ -13,15 +15,101 @@ class VerificationScreen extends StatefulWidget {
 class _VerificationScreenState extends State<VerificationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _codeController = TextEditingController();
+  final _authService = AuthService();
+  bool _isLoading = false;
 
-  void _resendCode() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Code has been resent"),
-        duration: Duration(seconds: 2),
-      ),
-    );
-    // here you can also call your backend API to resend OTP
+  // State for the resend button cooldown
+  Timer? _resendTimer;
+  int _resendCooldown = 60;
+  bool _isResendButtonActive = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startResendTimer();
+  }
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    _resendTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startResendTimer() {
+    _isResendButtonActive = false;
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_resendCooldown > 0) {
+        setState(() {
+          _resendCooldown--;
+        });
+      } else {
+        timer.cancel();
+        setState(() {
+          _isResendButtonActive = true;
+        });
+      }
+    });
+  }
+
+  Future<void> _resendCode() async {
+    if (!_isResendButtonActive) return;
+
+    // Call the backend to resend the OTP
+    await _authService.sendOtp(widget.email);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("A new code has been sent.")),
+      );
+    }
+    
+    // Reset and restart the timer
+    setState(() {
+      _resendCooldown = 60;
+    });
+    _startResendTimer();
+  }
+
+  Future<void> _verifyCode() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await _authService.verifyOtp(
+        widget.email,
+        _codeController.text.trim(),
+      );
+
+      if (mounted) {
+        if (result['statusCode'] == 200) {
+          final tempToken = result['data']['access_token'];
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => ResetPasswordScreen(email: widget.email, token: tempToken),
+            ),
+          );
+        } else {
+          final error = result['data']['error'] ?? 'An unknown error occurred.';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $error')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An error occurred: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -51,16 +139,14 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 style: TextStyle(fontSize: 16, color: Colors.white70),
               ),
               const SizedBox(height: 40),
-
-              // Verification code field
               TextFormField(
                 controller: _codeController,
                 decoration: const InputDecoration(hintText: '6-Digit Code'),
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
                 inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly, // only numbers
-                  LengthLimitingTextInputFormatter(6), // max 6 digits
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(6),
                 ],
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -72,30 +158,24 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   return null;
                 },
               ),
-
               const SizedBox(height: 32),
               ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // if valid, navigate to reset password screen
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const ResetPasswordScreen(),
-                      ),
-                    );
-                  }
-                },
-                child: const Text('Verify Code'),
+                onPressed: _isLoading ? null : _verifyCode,
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Verify Code'),
               ),
               const SizedBox(height: 24),
-
-              // Resend option
               GestureDetector(
-                onTap: _resendCode,
+                onTap: _isResendButtonActive ? _resendCode : null,
                 child: Text(
-                  "Didn't receive the code? Resend",
+                  _isResendButtonActive
+                      ? "Didn't receive the code? Resend"
+                      : "Resend code in $_resendCooldown s",
                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
+                    color: _isResendButtonActive
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.grey,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

@@ -1,5 +1,5 @@
-// lib/screens/forgot_password_screen.dart
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 import 'verification_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -12,6 +12,51 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  final _authService = AuthService();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendCode() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await _authService.sendOtp(_emailController.text.trim());
+
+      if (mounted) {
+        if (result['statusCode'] == 200) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => VerificationScreen(email: _emailController.text.trim()),
+            ),
+          );
+        } else {
+          final error = result['data']['error'] ?? 'An unknown error occurred.';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $error')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An error occurred: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +72,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Form(
-          key: _formKey, // form key for validation
+          key: _formKey,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -49,10 +94,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 decoration: const InputDecoration(hintText: 'Email Address'),
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
+                  if (value == null || value.trim().isEmpty) {
                     return 'Email is required';
                   }
-                  // simple email format check
                   if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
                     return 'Enter a valid email';
                   }
@@ -61,17 +105,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
               const SizedBox(height: 32),
               ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // if valid, navigate to verification screen
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const VerificationScreen(),
-                      ),
-                    );
-                  }
-                },
-                child: const Text('Send Code'),
+                onPressed: _isLoading ? null : _sendCode,
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Send Code'),
               ),
             ],
           ),

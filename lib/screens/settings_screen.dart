@@ -45,9 +45,9 @@ class SettingsScreen extends StatelessWidget {
             title: 'Change Password',
             onTap: () {
               // TODO: send code to email
-              Navigator.push(context, MaterialPageRoute(builder: (context) {
+              /*Navigator.push(context, MaterialPageRoute(builder: (context) {
                 return const VerificationScreen();
-              }));
+              }));*/
             },
           ),
           _buildSettingsCard(

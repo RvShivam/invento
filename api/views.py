@@ -1,4 +1,3 @@
-# api/viewspy
 from django.utils import timezone
 from datetime import timedelta
 import random
@@ -6,11 +5,15 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import UserRegistrationSerializer, UserLoginSerializer
-from .models import User
 from rest_framework.permissions import IsAuthenticated
-
-#from .email_utils import send_otp_email  #uncomment the function in api/email_utils for email sending
+from .serializers import (
+    UserRegistrationSerializer, 
+    UserLoginSerializer, 
+    UserProfileSerializer,
+    ChangePasswordSerializer
+)
+from .models import User
+# from .email_utils import send_otp_email # Uncomment for email sending
 
 class UserRegistrationView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -64,16 +67,13 @@ class SendOtpView(generics.GenericAPIView):
         except User.DoesNotExist:
             return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Generate OTP
         otp = str(random.randint(100000, 999999))
         user.otp = otp
         user.otp_expires = timezone.now() + timedelta(minutes=5)
         user.save()
 
-        # Replace the print statement with the email function call after setting up third party email service
-        # currently sendgrid is being used
         # send_otp_email(user.email, otp)
-        print(f"OTP for {user.email} is: {otp}") # For now, we'll just print it to the console
+        print(f"OTP for {user.email} is: {otp}")
 
         return Response({'success': 'OTP sent successfully.'}, status=status.HTTP_200_OK)
 
@@ -84,13 +84,11 @@ class VerifyOtpView(generics.GenericAPIView):
 
         try:
             user = User.objects.get(email=email)
-            if user.otp == otp and user.otp_expires > timezone.now():
-                # OTP is valid. Clear it after verification.
+            if user.otp == otp and user.otp_expires and user.otp_expires > timezone.now():
                 user.otp = None
                 user.otp_expires = None
                 user.save()
                 
-                # Grant a temporary token for password reset
                 refresh = RefreshToken.for_user(user)
                 return Response({
                     'success': 'OTP verified.',
@@ -101,12 +99,10 @@ class VerifyOtpView(generics.GenericAPIView):
         except User.DoesNotExist:
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-
 class ResetPasswordView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        # With IsAuthenticated, the user is automatically attached to the request
         user = request.user
         new_password = request.data.get('new_password')
         
@@ -116,3 +112,39 @@ class ResetPasswordView(generics.GenericAPIView):
         user.set_password(new_password)
         user.save()
         return Response({'success': 'Password has been reset successfully.'}, status=status.HTTP_200_OK)
+
+
+class ProfileView(generics.RetrieveUpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserProfileSerializer
+
+    def get_object(self):
+        return self.request.user
+
+class ChangePasswordView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ChangePasswordSerializer
+
+    def update(self, request, *args, **kwargs):
+        user = self.request.user
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        if not user.check_password(serializer.data.get("old_password")):
+            return Response({"error": "Wrong password."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(serializer.data.get("new_password"))
+        user.save()
+
+        return Response({"success": "Password updated successfully."}, status=status.HTTP_200_OK)
+    
+class DeleteAccountView(generics.DestroyAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response({"success": "Account deleted successfully."}, status=status.HTTP_204_NO_CONTENT)

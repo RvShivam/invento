@@ -1,10 +1,16 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  // If running Django on your computer and testing on an Android emulator,
-  // use '10.0.2.2'. For an iOS simulator, use 'localhost' or '127.0.0.1'.
+  // Use 'localhost' or '127.0.0.1' for web/iOS simulator.
+  // Use '10.0.2.2' for the Android Emulator.
   final String _baseUrl = "http://localhost:8000/api";
+
+  Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('access_token');
+  }
 
   Future<Map<String, dynamic>> register(String name, String email, String password) async {
     final response = await http.post(
@@ -28,7 +34,18 @@ class AuthService {
         'password': password,
       }),
     );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('access_token', data['access']);
+    }
     return {'statusCode': response.statusCode, 'data': json.decode(response.body)};
+  }
+  
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('access_token');
   }
 
   Future<Map<String, dynamic>> sendOtp(String email) async {

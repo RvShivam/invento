@@ -11,7 +11,7 @@ class DeleteConfirmationOverlay extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
       decoration: const BoxDecoration(
-        color: Color(0xFF2A2D3E), // A slightly different color for alerts
+        color: Color(0xFF2A2D3E), 
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(24.0),
           topRight: Radius.circular(24.0),
@@ -20,7 +20,6 @@ class DeleteConfirmationOverlay extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // The small drag handle at the top
           Container(
             width: 40,
             height: 4,

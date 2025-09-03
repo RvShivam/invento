@@ -1,19 +1,106 @@
 import 'package:flutter/material.dart';
 import 'package:invento_app/screens/verification_screen.dart';
+import 'package:invento_app/services/auth_service.dart';
+import 'package:invento_app/services/profile_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/delete_account_dialog.dart';
 import 'package:invento_app/screens/profile_screen.dart';
 import 'package:invento_app/screens/contact_us_screen.dart';
 import 'package:invento_app/screens/faq_screen.dart';
+import 'login_screen.dart';
 
-Future<void> _launchURL(String url) async {
-  final Uri uri = Uri.parse(url);
-  if (!await launchUrl(uri)) {
-    debugPrint('Could not launch $url');
-  }
-}
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final _authService = AuthService();
+  final _profileService = ProfileService();
+  bool _isLoading = false;
+
+  Future<void> _launchURL(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri)) {
+      debugPrint('Could not launch $url');
+    }
+  }
+
+  Future<void> _handleChangePassword() async {
+    setState(() => _isLoading = true);
+    
+    final email = await _profileService.getUserEmail();
+
+    if (email == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not retrieve user email.')),
+        );
+      }
+      setState(() => _isLoading = false);
+      return;
+    }
+    
+    final result = await _authService.sendOtp(email);
+    
+    if (mounted) {
+      if (result['statusCode'] == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An OTP has been sent to $email')),
+        );
+        Navigator.push(context, MaterialPageRoute(builder: (context) {
+          return VerificationScreen(email: email);
+        }));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to send OTP. Please try again.')),
+        );
+      }
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _handleLogout() async {
+    setState(() => _isLoading = true);
+    await _authService.logout();
+    if(mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (Route<dynamic> route) => false,
+      );
+    }
+    setState(() => _isLoading = false);
+  }
+
+  void _showAboutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF2A2D3E),
+          title: const Text('About Invento'),
+          content: const SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('Invento - Speak. Track. Sell.'),
+                SizedBox(height: 12),
+                Text('Version: 1.0.0'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Close'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,20 +130,13 @@ class SettingsScreen extends StatelessWidget {
             context: context,
             icon: Icons.lock_outline,
             title: 'Change Password',
-            onTap: () {
-              // TODO: send code to email
-              /*Navigator.push(context, MaterialPageRoute(builder: (context) {
-                return const VerificationScreen();
-              }));*/
-            },
+            onTap: _isLoading ? () {} : _handleChangePassword,
           ),
           _buildSettingsCard(
             context: context,
             icon: Icons.logout,
             title: 'Logout',
-            onTap: () {
-              Navigator.of(context).pushReplacementNamed('/login');
-            },
+            onTap: _isLoading ? () {} : _handleLogout,
           ),
           const SizedBox(height: 24),
           _buildSectionHeader('Support & About'),
@@ -85,7 +165,6 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.privacy_tip_outlined,
             title: 'Privacy Policy',
             onTap: () {
-              
               _launchURL('https://yourwebsite.com/privacy');
             },
           ),
@@ -101,9 +180,7 @@ class SettingsScreen extends StatelessWidget {
             context: context,
             icon: Icons.info_outline,
             title: 'About Invento',
-            onTap: () {
-              // TODO: Show an 'About' dialog with app version, etc.
-            },
+            onTap: () => _showAboutDialog(context),
           ),
           const SizedBox(height: 32),
           _buildDeleteAccountButton(context),
@@ -111,7 +188,6 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
-
 
   Widget _buildSectionHeader(String title) {
     return Padding(
@@ -127,7 +203,6 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  // A reusable helper widget for each settings option
   Widget _buildSettingsCard({
     required BuildContext context,
     required IconData icon,
@@ -154,7 +229,7 @@ class SettingsScreen extends StatelessWidget {
           builder: (BuildContext context){
             return const DeleteAccountDialog();
           },
-          );
+        );
       },
       style: OutlinedButton.styleFrom(
         foregroundColor: Colors.red,

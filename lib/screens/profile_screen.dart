@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/profile_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -8,9 +9,52 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // TODO:fetch the user's current data
-  final _nameController = TextEditingController(text: 'Your Name');
-  final _emailController = TextEditingController(text: 'your.email@example.com');
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _profileService = ProfileService();
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    final result = await _profileService.getProfile();
+    if (mounted && result['statusCode'] == 200) {
+      setState(() {
+        _nameController.text = result['data']['name'];
+        _emailController.text = result['data']['email'];
+        _isLoading = false;
+      });
+    } else {
+      // Handle error
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    setState(() => _isLoading = true);
+    final result = await _profileService.updateProfile(
+      _nameController.text,
+      _emailController.text,
+    );
+    setState(() => _isLoading = false);
+
+    if (mounted) {
+      if (result['statusCode'] == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully!')),
+        );
+        Navigator.of(context).pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${result['data']}')),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -26,31 +70,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text('Profile'),
         backgroundColor: Colors.transparent,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Your Name',
-            suffixIcon: Icon(Icons.edit, color: Colors.white54,)),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _emailController,
-            decoration: const InputDecoration(labelText: 'Email Address',
-            suffixIcon: Icon(Icons.edit, color: Colors.white54,)),
-            keyboardType: TextInputType.emailAddress,
-          ),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.all(16.0),
+              children: [
+                TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Your Name',
+                    suffixIcon: Icon(Icons.edit, color: Colors.white54),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email Address',
+                    suffixIcon: Icon(Icons.edit, color: Colors.white54),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+              ],
+            ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ElevatedButton(
-          onPressed: () {
-            // TODO: Call a service to update the user's profile
-            Navigator.of(context).pop();
-          },
-          child: const Text('Save Changes'),
+          onPressed: _isLoading ? null : _saveProfile,
+          child: _isLoading 
+              ? const CircularProgressIndicator(color: Colors.white)
+              : const Text('Save Changes'),
         ),
       ),
     );

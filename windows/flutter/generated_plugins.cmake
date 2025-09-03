@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   file_saver
   printing
+  speech_to_text_windows
   url_launcher_windows
 )
 

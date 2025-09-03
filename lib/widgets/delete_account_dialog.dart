@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../services/profile_service.dart';
+import '../services/auth_service.dart';
+import '../screens/login_screen.dart';
 
 class DeleteAccountDialog extends StatefulWidget {
   const DeleteAccountDialog({super.key});
@@ -9,7 +12,10 @@ class DeleteAccountDialog extends StatefulWidget {
 
 class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
   final TextEditingController _controller = TextEditingController();
+  final ProfileService _profileService = ProfileService();
+  final AuthService _authService = AuthService();
   bool _isConfirmed = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -25,6 +31,35 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _deleteAccount() async {
+    setState(() => _isLoading = true);
+
+    final result = await _profileService.deleteAccount();
+
+    if (mounted) {
+      if (result['statusCode'] == 204) {
+        await _authService.logout(); // Clear the stored token
+        Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+            (route) => false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Account deleted successfully.')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to delete account. Please try again.')),
+        );
+        // Pop the dialog on failure
+        Navigator.of(context).pop();
+      }
+    }
+    
+    // In case of success, the screen is already navigated away
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -59,18 +94,18 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         ElevatedButton(
-          onPressed: _isConfirmed
-              ? () {
-                  // TODO: Call backend service to delete the account
-                  Navigator.of(context).pop(); 
-                  Navigator.of(context).pushReplacementNamed('/signup');
-                }
-              : null,
+          onPressed: (_isConfirmed && !_isLoading) ? _deleteAccount : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.red,
             disabledBackgroundColor: Colors.grey[800],
           ),
-          child: const Text('Delete'),
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2.0, color: Colors.white),
+                )
+              : const Text('Delete'),
         ),
       ],
     );

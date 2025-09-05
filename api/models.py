@@ -20,3 +20,18 @@ class User(AbstractUser):
         related_name='api_user_permissions_set', 
         blank=True,
     )
+
+class Item(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='items')
+    name = models.CharField(max_length=255)
+    sku = models.CharField(max_length=100, unique=True)
+    category = models.CharField(max_length=100)
+    supplier = models.CharField(max_length=100)
+    quantity = models.IntegerField(default=0)
+    purchase_price = models.DecimalField(max_digits=10, decimal_places=2)
+    selling_price = models.DecimalField(max_digits=10, decimal_places=2)
+    date_added = models.DateTimeField(auto_now_add=True)
+    stock_history = models.JSONField(default=list)
+
+    def __str__(self):
+        return self.name

@@ -1,19 +1,30 @@
 // lib/services/low_stock_service.dart
-import '../models/inventory_item.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:invento_app/services/auth_service.dart';
 import '../models/low_stock_report_data.dart';
 
 class LowStockService {
-  Future<LowStockReportData> fetchLowStockReport() async {
-    await Future.delayed(const Duration(seconds: 1));
+  
+  final String _baseUrl = "http://localhost:8000/api";
+  final AuthService _authService = AuthService();
 
-    final lowStockItems = [
-      InventoryItem(name: 'Webcam with Ringlight', sku: '#901234', quantity: 2, price: 500.00, category: 'Electronics', supplier: 'StreamCo'),
-      InventoryItem(name: 'Mechanical Keyboard', sku: '#789012', quantity: 0, price: 250.50, category: 'Electronics', supplier: 'TechPro'),
-    ];
-    
-    return LowStockReportData(
-      totalLowStockItems: lowStockItems.length,
-      items: lowStockItems,
+  Future<LowStockReportData> fetchLowStockReport() async {
+    final token = await _authService.getToken();
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    final response = await http.get(
+      Uri.parse('$_baseUrl/reports/low-stock/'),
+      headers: headers,
     );
+
+    if (response.statusCode == 200) {
+      return LowStockReportData.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Failed to load low stock report');
+    }
   }
 }

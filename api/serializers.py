@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User
+from .models import User,Item
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -28,3 +28,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True, write_only=True)
     new_password = serializers.CharField(required=True, write_only=True)
+
+class ItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Item
+        fields = '__all__'
+        read_only_fields = ('user',)

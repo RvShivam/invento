@@ -1,37 +1,30 @@
 // lib/services/item_details_service.dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:invento_app/services/auth_service.dart';
 import '../models/item_details.dart';
 
 class ItemDetailsService {
-  // In a real app, you would pass an item ID or SKU to this method.
-  Future<ItemDetails> fetchItemDetails(String sku) async {
-    // Simulate a network delay
-    await Future.delayed(const Duration(milliseconds: 500));
+  final String _baseUrl = "http://localhost:8000/api";
+  final AuthService _authService = AuthService();
 
-    // Return mock data for the "Ergonomic Mouse" as shown in the design
-    return ItemDetails(
-      name: 'Ergonomic Mouse',
-      sku: '#123456',
-      currentStock: 52,
-      category: 'Electronics',
-      supplier: 'TechPro Inc.',
-      dateAdded: '12/03/2024',
-      purchasePrice: 85.00,
-      sellingPrice: 120.00,
-      margin: '29.17%',
-      stockHistory: [
-        StockHistoryEntry(
-          type: 'Stock In',
-          description: 'Order #O-98765',
-          quantityChange: 50,
-          date: '10/03/2024',
-        ),
-        StockHistoryEntry(
-          type: 'Stock Out',
-          description: 'Sale #S-54321',
-          quantityChange: -10,
-          date: '11/03/2024',
-        ),
-      ],
+  Future<ItemDetails> fetchItemDetails(String sku) async {
+    final token = await _authService.getToken();
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    final response = await http.get(
+      Uri.parse('$_baseUrl/items/sku/$sku/'), // Use the new, direct SKU endpoint
+      headers: headers,
     );
+
+    if (response.statusCode == 200) {
+      // The response is now a single item object, not a list
+      return ItemDetails.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Failed to load item details for SKU $sku');
+    }
   }
 }

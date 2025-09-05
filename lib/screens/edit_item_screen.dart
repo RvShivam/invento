@@ -1,6 +1,7 @@
 // lib/screens/edit_item_screen.dart
 import 'package:flutter/material.dart';
-import '../models/item_details.dart'; // We'll pass the detailed item model
+import 'package:invento_app/services/inventory_service.dart';
+import '../models/item_details.dart';
 
 class EditItemScreen extends StatefulWidget {
   final ItemDetails item;
@@ -12,6 +13,7 @@ class EditItemScreen extends StatefulWidget {
 }
 
 class _EditItemScreenState extends State<EditItemScreen> {
+  final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _skuController;
   late TextEditingController _categoryController;
@@ -20,10 +22,12 @@ class _EditItemScreenState extends State<EditItemScreen> {
   late TextEditingController _purchasePriceController;
   late TextEditingController _sellingPriceController;
 
+  final _inventoryService = InventoryService();
+  bool _isLoading = false;
+
   @override
   void initState() {
     super.initState();
-    // Initialize the controllers with the existing item's data
     _nameController = TextEditingController(text: widget.item.name);
     _skuController = TextEditingController(text: widget.item.sku);
     _categoryController = TextEditingController(text: widget.item.category);
@@ -47,6 +51,45 @@ class _EditItemScreenState extends State<EditItemScreen> {
     super.dispose();
   }
 
+  Future<void> _saveChanges() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final itemData = {
+      'name': _nameController.text.trim(),
+      'sku': _skuController.text.trim(),
+      'category': _categoryController.text.trim(),
+      'supplier': _supplierController.text.trim(),
+      'quantity': int.tryParse(_stockController.text.trim()) ?? 0,
+      'purchase_price': _purchasePriceController.text.trim(),
+      'selling_price': _sellingPriceController.text.trim(),
+    };
+
+    try {
+      await _inventoryService.updateItem(widget.item.id, itemData);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Item updated successfully!')),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update item: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -61,42 +104,44 @@ class _EditItemScreenState extends State<EditItemScreen> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildTextField(label: 'Item Name', controller: _nameController),
-            const SizedBox(height: 16),
-            _buildTextField(label: 'SKU', controller: _skuController),
-            const SizedBox(height: 16),
-            _buildTextField(label: 'Category', controller: _categoryController),
-            const SizedBox(height: 16),
-            _buildTextField(label: 'Supplier', controller: _supplierController),
-            const SizedBox(height: 16),
-            _buildTextField(
-              label: 'Current Stock',
-              controller: _stockController,
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              label: 'Purchasing Price',
-              controller: _purchasePriceController,
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              label: 'Selling Price',
-              controller: _sellingPriceController,
-              keyboardType: TextInputType.number,
-            ),
-          ],
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildTextField(label: 'Item Name', controller: _nameController),
+              const SizedBox(height: 16),
+              _buildTextField(label: 'SKU', controller: _skuController),
+              const SizedBox(height: 16),
+              _buildTextField(label: 'Category', controller: _categoryController),
+              const SizedBox(height: 16),
+              _buildTextField(label: 'Supplier', controller: _supplierController),
+              const SizedBox(height: 16),
+              _buildTextField(
+                label: 'Current Stock',
+                controller: _stockController,
+                readOnly: true, // Stock is adjusted separately
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                label: 'Purchasing Price',
+                controller: _purchasePriceController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                label: 'Selling Price',
+                controller: _sellingPriceController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: _buildActionButtons(),
     );
   }
 
-  // Helper widget to create a styled text field with a label
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
@@ -108,7 +153,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
       children: [
         Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14)),
         const SizedBox(height: 8),
-        TextField(
+        TextFormField(
           controller: controller,
           readOnly: readOnly,
           keyboardType: keyboardType,
@@ -121,12 +166,17 @@ class _EditItemScreenState extends State<EditItemScreen> {
               borderSide: BorderSide.none,
             ),
           ),
+          validator: (value) {
+            if (!readOnly && (value == null || value.isEmpty)) {
+              return "Please enter a value";
+            }
+            return null;
+          },
         ),
       ],
     );
   }
 
-  // Helper widget for the bottom action buttons
   Widget _buildActionButtons() {
     return Container(
       padding: const EdgeInsets.all(16.0),
@@ -134,7 +184,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
         children: [
           Expanded(
             child: OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(), // Just close the screen
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text('Cancel'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.white,
@@ -146,11 +196,10 @@ class _EditItemScreenState extends State<EditItemScreen> {
           const SizedBox(width: 16),
           Expanded(
             child: ElevatedButton(
-              onPressed: () {
-                // TODO: Implement save logic here
-                Navigator.of(context).pop();
-              },
-              child: const Text('Save Changes'),
+              onPressed: _isLoading ? null : _saveChanges,
+              child: _isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text('Save Changes'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),

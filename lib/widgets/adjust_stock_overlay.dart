@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-// Enum to manage the adjustment type
 enum AdjustmentType { add, remove }
 
 class AdjustStockOverlay extends StatefulWidget {
@@ -15,7 +14,7 @@ class AdjustStockOverlay extends StatefulWidget {
 }
 
 class _AdjustStockOverlayState extends State<AdjustStockOverlay> {
-  AdjustmentType _selectedType = AdjustmentType.add; // Default to 'Add'
+  AdjustmentType _selectedType = AdjustmentType.add;
   final TextEditingController _quantityController = TextEditingController();
 
   @override
@@ -26,7 +25,6 @@ class _AdjustStockOverlayState extends State<AdjustStockOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    // This ensures the content is above the keyboard
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
@@ -117,7 +115,7 @@ class _AdjustStockOverlayState extends State<AdjustStockOverlay> {
     return TextField(
       controller: _quantityController,
       keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly], // Allow only numbers
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       decoration: const InputDecoration(
         labelText: 'Quantity',
         hintText: 'Enter quantity',
@@ -143,10 +141,18 @@ class _AdjustStockOverlayState extends State<AdjustStockOverlay> {
         Expanded(
           child: ElevatedButton(
             onPressed: () {
-              // TODO: Implement logic to save the stock adjustment to your backend.
-              // You can get the quantity with: int.tryParse(_quantityController.text) ?? 0
-              // And the type with: _selectedType
-              Navigator.of(context).pop(true); // Pop and return true to indicate a change was made
+              final quantity = int.tryParse(_quantityController.text) ?? 0;
+              if (quantity == 0) return;
+
+              final adjustment = _selectedType == AdjustmentType.add ? quantity : -quantity;
+              
+              final result = {
+                'quantity': adjustment,
+                'description': _selectedType == AdjustmentType.add ? 'Manual Addition' : 'Manual Removal'
+              };
+              
+              // Pop and return the data map
+              Navigator.of(context).pop(result);
             },
             child: const Text('Confirm'),
             style: ElevatedButton.styleFrom(

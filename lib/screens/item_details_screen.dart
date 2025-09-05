@@ -1,5 +1,5 @@
-// lib/screens/item_details_screen.dart
 import 'package:flutter/material.dart';
+import 'package:invento_app/services/inventory_service.dart';
 import '../models/item_details.dart';
 import '../services/item_details_service.dart';
 import 'edit_item_screen.dart';
@@ -16,6 +16,7 @@ class ItemDetailsScreen extends StatefulWidget {
 
 class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
   late Future<ItemDetails> _detailsFuture;
+  final _inventoryService = InventoryService();
 
   @override
   void initState() {
@@ -23,9 +24,8 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
     _detailsFuture = ItemDetailsService().fetchItemDetails(widget.sku);
   }
 
-  // Method to show the Adjust Stock overlay
   void _showAdjustStockOverlay(ItemDetails item) async {
-    final result = await showModalBottomSheet<bool>(
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -34,15 +34,25 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
       },
     );
 
-    if (result == true) {
-      // If the user confirms an adjustment, refresh the item details
-      setState(() {
-        _detailsFuture = ItemDetailsService().fetchItemDetails(widget.sku);
-      });
+    if (result != null && mounted) {
+      final success = await _inventoryService.adjustStock(
+        item.id,
+        result['quantity'],
+        result['description'],
+      );
+
+      if (success) {
+        setState(() {
+          _detailsFuture = ItemDetailsService().fetchItemDetails(widget.sku);
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to update stock.')),
+        );
+      }
     }
   }
 
-  // Method to show the Delete confirmation overlay
   void _showDeleteConfirmation(ItemDetails item) async {
     final bool? confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -53,10 +63,20 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
     );
 
     if (confirmed == true) {
-      // TODO: Call a service to delete the item from the backend.
-      // After successful deletion, navigate back to the inventory list.
-      if (mounted) {
-         Navigator.of(context).pop();
+      try {
+        await _inventoryService.deleteItem(item.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('"${item.name}" was deleted.')),
+          );
+          Navigator.of(context).pop();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete item: $e')),
+          );
+        }
       }
     }
   }
@@ -155,7 +175,7 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
             const Divider(color: Colors.grey),
             _buildDetailRow('Supplier', item.supplier),
             const Divider(color: Colors.grey),
-            _buildDetailRow('Date Added', item.dateAdded),
+            _buildDetailRow('Date Added', item.dateAdded.split('T')[0]),
           ],
         ),
       ),
@@ -163,6 +183,11 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
   }
 
   Widget _buildPricingCard(ItemDetails item) {
+    // Calculate margin
+    final margin = item.sellingPrice > 0 
+        ? (((item.sellingPrice - item.purchasePrice) / item.sellingPrice) * 100)
+        : 0.0;
+
     return Card(
       color: const Color(0xFF1C1F2E),
       child: Padding(
@@ -173,7 +198,7 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
             const Divider(color: Colors.grey),
             _buildDetailRow('Selling Price', '₹${item.sellingPrice.toStringAsFixed(2)}'),
             const Divider(color: Colors.grey),
-            _buildDetailRow('Margin', item.margin),
+            _buildDetailRow('Margin', '${margin.toStringAsFixed(2)}%'),
           ],
         ),
       ),
@@ -190,7 +215,18 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
           children: [
             const Text('Stock History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            ...item.stockHistory.map((entry) => _buildStockHistoryRow(entry)).toList(),
+            if (item.stockHistory.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16.0),
+                child: Center(
+                  child: Text(
+                    'No stock history available for this item.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+              )
+            else
+              ...item.stockHistory.map((entry) => _buildStockHistoryRow(entry)).toList(),
           ],
         ),
       ),
@@ -232,7 +268,7 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                 '${isStockIn ? '+' : ''}${entry.quantityChange} units',
                 style: TextStyle(color: isStockIn ? Colors.green : Colors.red, fontWeight: FontWeight.bold),
               ),
-              Text(entry.date, style: const TextStyle(color: Colors.white70)),
+              Text(entry.date),
             ],
           ),
         ],

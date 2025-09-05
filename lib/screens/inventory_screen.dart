@@ -1,11 +1,11 @@
 // lib/screens/inventory_screen.dart
 import 'package:flutter/material.dart';
+import 'package:invento_app/screens/add_item.dart';
 import '../models/inventory_item.dart';
 import '../services/inventory_service.dart';
 import 'item_details_screen.dart';
 import '../widgets/filter_sort_overlay.dart';
 import '../models/filter_options.dart';
-import 'add_item.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -16,8 +16,8 @@ class InventoryScreen extends StatefulWidget {
 
 class _InventoryScreenState extends State<InventoryScreen> {
   bool _isLoading = true;
-  List<InventoryItem> _allItems = []; // Holds the master list of items
-  List<InventoryItem> _displayedItems = []; // Holds the filtered and sorted list
+  List<InventoryItem> _allItems = [];
+  List<InventoryItem> _displayedItems = [];
   FilterOptions _currentFilters = FilterOptions();
   final TextEditingController _searchController = TextEditingController();
 
@@ -25,9 +25,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   void initState() {
     super.initState();
     _fetchItems();
-    _searchController.addListener(() {
-      _applyFiltersAndSort();
-    });
+    _searchController.addListener(_applyFiltersAndSort);
   }
 
   @override
@@ -37,15 +35,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Future<void> _fetchItems() async {
+    if (!mounted) return;
     setState(() { _isLoading = true; });
     try {
       final items = await InventoryService().fetchInventoryItems();
+      if (!mounted) return;
       setState(() {
         _allItems = items;
-        _applyFiltersAndSort(); // Apply default filters initially
+        _applyFiltersAndSort();
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() { _isLoading = false; });
     }
   }
@@ -54,7 +55,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     List<InventoryItem> tempItems = List.from(_allItems);
     String searchQuery = _searchController.text.toLowerCase();
 
-    // 1. Apply Search Query Filter
     if (searchQuery.isNotEmpty) {
       tempItems = tempItems.where((item) {
         final nameMatches = item.name.toLowerCase().contains(searchQuery);
@@ -63,7 +63,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       }).toList();
     }
 
-    // 2. Apply Status Filter
     switch (_currentFilters.filterStatus) {
       case FilterStatus.lowStock:
         tempItems.retainWhere((item) => item.quantity > 0 && item.quantity <= 10);
@@ -76,7 +75,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
         break;
     }
 
-    // 3. Apply Category and Supplier Filters
     if (_currentFilters.category != null) {
       tempItems.retainWhere((item) => item.category == _currentFilters.category);
     }
@@ -84,7 +82,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       tempItems.retainWhere((item) => item.supplier == _currentFilters.supplier);
     }
 
-    // 4. Apply Sorting
     switch (_currentFilters.sortOption) {
       case SortOption.nameAZ:
         tempItems.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
@@ -139,26 +136,25 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _displayedItems.isEmpty
-              ? const Center(child: Text("No items match your filters.", style: TextStyle(color: Colors.white70)))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: _displayedItems.length,
-                  itemBuilder: (context, index) {
-                    return _buildInventoryItemCard(_displayedItems[index]);
-                  },
-                ),
+          : RefreshIndicator(
+              onRefresh: _fetchItems,
+              child: _displayedItems.isEmpty
+                  ? const Center(child: Text("No items match your filters.", style: TextStyle(color: Colors.white70)))
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16.0),
+                      itemCount: _displayedItems.length,
+                      itemBuilder: (context, index) {
+                        return _buildInventoryItemCard(_displayedItems[index]);
+                      },
+                    ),
+            ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          
-       Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const AddItemScreen(
-          
-        ),
-      ),
-    );  
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AddItemScreen()),
+          );
+          _fetchItems();
         },
         backgroundColor: Theme.of(context).colorScheme.primary,
         child: const Icon(Icons.add, color: Colors.white, size: 32),
@@ -240,12 +236,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
             const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white54),
           ],
         ),
-        onTap: () {
-          Navigator.of(context).push(
+        onTap: () async {
+          await Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => ItemDetailsScreen(sku: item.sku),
             ),
           );
+          _fetchItems();
         },
       ),
     );

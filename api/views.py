@@ -3,6 +3,7 @@ from datetime import timedelta
 import random
 from rest_framework import generics, status
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
@@ -10,9 +11,11 @@ from .serializers import (
     UserRegistrationSerializer, 
     UserLoginSerializer, 
     UserProfileSerializer,
-    ChangePasswordSerializer
+    ChangePasswordSerializer,
+    ItemSerializer
 )
-from .models import User
+import rest_framework.serializers as serializers
+from .models import User, Item
 # from .email_utils import send_otp_email # Uncomment for email sending
 
 class UserRegistrationView(generics.CreateAPIView):
@@ -148,3 +151,93 @@ class DeleteAccountView(generics.DestroyAPIView):
         instance = self.get_object()
         self.perform_destroy(instance)
         return Response({"success": "Account deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+    
+class ItemListCreateView(generics.ListCreateAPIView):
+    serializer_class = ItemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Item.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class ItemDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = ItemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Item.objects.filter(user=self.request.user)
+    
+class LowStockReportView(generics.ListAPIView):
+    serializer_class = ItemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Filter items for the current user that have a quantity of 10 or less
+        return Item.objects.filter(user=self.request.user, quantity__lte=10)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        report_data = {
+            'totalLowStockItems': queryset.count(),
+            'items': serializer.data
+        }
+        return Response(report_data)
+    
+class ItemDetailBySkuView(generics.RetrieveAPIView):
+    serializer_class = ItemSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'sku' 
+
+    def get_queryset(self):
+        return Item.objects.filter(user=self.request.user)
+    
+class AdjustStockView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = Item.objects.all()
+    serializer_class = ItemSerializer
+
+    def get_object(self):
+        queryset = self.get_queryset()
+        obj = generics.get_object_or_404(queryset, pk=self.kwargs['pk'], user=self.request.user)
+        return obj
+
+    def post(self, request, *args, **kwargs):
+        item = self.get_object()
+        quantity_change = request.data.get('quantity_change')
+        description = request.data.get('description')
+
+        if not all([isinstance(quantity_change, int), description]):
+            return Response({'error': 'Invalid data provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        item.quantity += quantity_change
+        
+        history_entry = {
+            'type': 'Stock In' if quantity_change > 0 else 'Stock Out',
+            'change': quantity_change,
+            'description': description,
+            'date': timezone.now().strftime('%Y-%m-%d')
+        }
+        if not isinstance(item.stock_history, list):
+            item.stock_history = []
+        item.stock_history.append(history_entry)
+        
+        item.save()
+        serializer = self.get_serializer(item)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class CategoryListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        categories = Item.objects.filter(user=request.user).order_by('category').values_list('category', flat=True).distinct()
+        return Response(list(categories))
+
+class SupplierListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        suppliers = Item.objects.filter(user=request.user).order_by('supplier').values_list('supplier', flat=True).distinct()
+        return Response(list(suppliers))

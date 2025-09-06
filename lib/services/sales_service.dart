@@ -1,41 +1,42 @@
-// lib/services/sales_service.dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:invento_app/services/auth_service.dart';
 import '../models/sales_transaction.dart';
 
 class SalesService {
-  Future<List<SalesTransaction>> fetchSalesHistory() async {
-    await Future.delayed(const Duration(seconds: 1)); // Simulate network delay
+  final String _baseUrl = "http://localhost:8000/api";
+  final AuthService _authService = AuthService();
 
-    return [
-      SalesTransaction(
-        orderId: '#S-54321',
-        customerName: 'Vikram Sharma',
-        date: '30/08/2025',
-        totalAmount: 1250.00,
-        items: [
-          SoldItem(name: 'Ergonomic Mouse', quantity: 10, price: 120.00),
-          SoldItem(name: 'Desk Mat', quantity: 2, price: 25.00),
-        ],
-      ),
-      SalesTransaction(
-        orderId: '#S-54320',
-        customerName: 'Priya Verma',
-        date: '29/08/2025',
-        totalAmount: 820.00,
-        items: [
-          SoldItem(name: '4K Monitor', quantity: 1, price: 500.00),
-          SoldItem(name: 'Webcam with Ringlight', quantity: 2, price: 160.00),
-        ],
-      ),
-      SalesTransaction(
-        orderId: '#S-54319',
-        customerName: 'Rohan Patel',
-        date: '28/08/2025',
-        totalAmount: 1580.00,
-        items: [
-          SoldItem(name: 'Mechanical Keyboard', quantity: 5, price: 250.50),
-          SoldItem(name: 'Laptop Stand', quantity: 7, price: 45.00),
-        ],
-      ),
-    ];
+  Future<Map<String, String>> _getAuthHeaders() async {
+    final token = await _authService.getToken();
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
+
+  Future<List<SalesTransaction>> fetchSalesHistory() async {
+    final headers = await _getAuthHeaders();
+    final response = await http.get(Uri.parse('$_baseUrl/sales/'), headers: headers);
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      return data.map((item) => SalesTransaction.fromJson(item)).toList();
+    } else {
+      throw Exception('Failed to load sales history');
+    }
+  }
+
+  Future<void> recordSale(Map<String, dynamic> saleData) async {
+    final headers = await _getAuthHeaders();
+    final response = await http.post(
+      Uri.parse('$_baseUrl/sales/'),
+      headers: headers,
+      body: json.encode(saleData),
+    );
+
+    if (response.statusCode != 201) {
+      throw Exception('Failed to record sale: ${response.body}');
+    }
   }
 }

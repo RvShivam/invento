@@ -17,6 +17,8 @@ from .views import (
     AdjustStockView,
     CategoryListView,
     SupplierListView,
+    SaleListCreateView,
+    SaleDetailView
 )
 
 urlpatterns = [
@@ -44,4 +46,8 @@ urlpatterns = [
     path('categories/', CategoryListView.as_view(), name='category-list'),
     path('suppliers/', SupplierListView.as_view(), name='supplier-list'),
     path('reports/low-stock/', LowStockReportView.as_view(), name='low-stock-report'),
+
+    # --- Sales Management URLs ---
+    path('sales/', SaleListCreateView.as_view(), name='sale-list-create'),
+    path('sales/<int:pk>/', SaleDetailView.as_view(), name='sale-detail'),
 ]

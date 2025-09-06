@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
 
 class User(AbstractUser):
@@ -35,3 +36,21 @@ class Item(models.Model):
 
     def __str__(self):
         return self.name
+    
+class Sale(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sales')
+    order_id = models.CharField(max_length=50, unique=True, blank=True)
+    customer_name = models.CharField(max_length=255)
+    date = models.DateTimeField(default=timezone.now)
+    items_sold = models.JSONField(default=list)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def save(self, *args, **kwargs):
+        if not self.order_id:
+            last_sale = Sale.objects.order_by('id').last()
+            new_id = (last_sale.id + 1) if last_sale else 1
+            self.order_id = f'S-{1000 + new_id}'
+        super(Sale, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.order_id

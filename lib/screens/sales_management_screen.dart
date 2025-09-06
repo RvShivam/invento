@@ -1,7 +1,9 @@
+// lib/screens/sales_management_screen.dart
+
 import 'package:flutter/material.dart';
 import '../models/sales_transaction.dart';
 import '../services/sales_service.dart';
-import 'select_item_for_sale_screen.dart';
+import 'package:invento_app/screens/select_item_for_sale_screen.dart';
 import 'transaction_details_screen.dart';
 
 class SalesManagementScreen extends StatefulWidget {
@@ -31,17 +33,21 @@ class _SalesManagementScreenState extends State<SalesManagementScreen> {
   }
 
   Future<void> _fetchTransactions() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
     try {
       final transactions = await SalesService().fetchSalesHistory();
-      setState(() {
-        _allTransactions = transactions;
-        _displayedTransactions = transactions;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _allTransactions = transactions;
+          _applySearchFilter();
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -85,20 +91,24 @@ class _SalesManagementScreenState extends State<SalesManagementScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _displayedTransactions.isEmpty
-              ? const Center(child: Text('No sales history found.'))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: _displayedTransactions.length,
-                  itemBuilder: (context, index) {
-                    return _buildTransactionCard(_displayedTransactions[index]);
-                  },
-                ),
+          : RefreshIndicator(
+              onRefresh: _fetchTransactions,
+              child: _displayedTransactions.isEmpty
+                  ? const Center(child: Text('No sales history found.'))
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16.0),
+                      itemCount: _displayedTransactions.length,
+                      itemBuilder: (context, index) {
+                        return _buildTransactionCard(_displayedTransactions[index]);
+                      },
+                    ),
+            ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.of(context).push(
+        onPressed: () async {
+          await Navigator.of(context).push(
             MaterialPageRoute(builder: (context) => const SelectItemsForSaleScreen()),
           );
+          _fetchTransactions(); // Refresh the list after a new sale is made
         },
         label: const Text('Record New Sale'),
         icon: const Icon(Icons.add),
@@ -149,7 +159,7 @@ class _SalesManagementScreenState extends State<SalesManagementScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Date: ${transaction.date}',
+                'Date: ${transaction.date.split('T')[0]}',
                 style: const TextStyle(color: Colors.white70, fontSize: 14),
               ),
               const Divider(height: 24, color: Colors.grey),

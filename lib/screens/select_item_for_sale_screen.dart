@@ -1,7 +1,9 @@
+// lib/screens/select_item_for_sale_screen.dart
+
 import 'package:flutter/material.dart';
 import '../models/inventory_item.dart';
 import '../services/inventory_service.dart';
-import 'record_sale_screen.dart';
+import 'package:invento_app/screens/record_sale_screen.dart';
 
 class SelectItemsForSaleScreen extends StatefulWidget {
   const SelectItemsForSaleScreen({super.key});
@@ -32,11 +34,13 @@ class _SelectItemsForSaleScreenState extends State<SelectItemsForSaleScreen> {
 
   Future<void> _fetchItems() async {
     final items = await InventoryService().fetchInventoryItems();
-    setState(() {
-      _allItems = items;
-      _displayedItems = items;
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _allItems = items;
+        _filterItems();
+        _isLoading = false;
+      });
+    }
   }
 
   void _filterItems() {
@@ -105,14 +109,17 @@ class _SelectItemsForSaleScreenState extends State<SelectItemsForSaleScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    itemCount: _displayedItems.length,
-                    itemBuilder: (context, index) {
-                      final item = _displayedItems[index];
-                      final quantity = _selectedItems[item] ?? 0;
-                      return _buildItemTile(item, quantity);
-                    },
+                : RefreshIndicator(
+                    onRefresh: _fetchItems,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      itemCount: _displayedItems.length,
+                      itemBuilder: (context, index) {
+                        final item = _displayedItems[index];
+                        final quantity = _selectedItems[item] ?? 0;
+                        return _buildItemTile(item, quantity);
+                      },
+                    ),
                   ),
           ),
         ],

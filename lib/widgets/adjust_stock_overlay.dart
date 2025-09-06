@@ -151,7 +151,6 @@ class _AdjustStockOverlayState extends State<AdjustStockOverlay> {
                 'description': _selectedType == AdjustmentType.add ? 'Manual Addition' : 'Manual Removal'
               };
               
-              // Pop and return the data map
               Navigator.of(context).pop(result);
             },
             child: const Text('Confirm'),

@@ -12,10 +12,12 @@ from .serializers import (
     UserLoginSerializer, 
     UserProfileSerializer,
     ChangePasswordSerializer,
-    ItemSerializer
+    ItemSerializer,
+    SaleSerializer
 )
 import rest_framework.serializers as serializers
-from .models import User, Item
+from .models import User, Item, Sale
+from django.db import transaction
 # from .email_utils import send_otp_email # Uncomment for email sending
 
 class UserRegistrationView(generics.CreateAPIView):
@@ -241,3 +243,37 @@ class SupplierListView(APIView):
     def get(self, request, *args, **kwargs):
         suppliers = Item.objects.filter(user=request.user).order_by('supplier').values_list('supplier', flat=True).distinct()
         return Response(list(suppliers))
+    
+class SaleListCreateView(generics.ListCreateAPIView):
+    serializer_class = SaleSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Sale.objects.filter(user=self.request.user).order_by('-date')
+
+    def perform_create(self, serializer):
+        # The request data should contain 'items_sold', a list of {'id', 'quantity'}
+        items_data = self.request.data.get('items_sold', [])
+        
+        # Start a database transaction
+        with transaction.atomic():
+            # First, update the stock for each item
+            for item_data in items_data:
+                try:
+                    item = Item.objects.get(pk=item_data['id'], user=self.request.user)
+                    if item.quantity < item_data['quantity']:
+                        raise serializers.ValidationError(f"Not enough stock for {item.name}.")
+                    item.quantity -= item_data['quantity']
+                    item.save()
+                except Item.DoesNotExist:
+                    raise serializers.ValidationError(f"Item with id {item_data['id']} not found.")
+
+            # If all stock updates succeed, save the sale
+            serializer.save(user=self.request.user)
+
+class SaleDetailView(generics.RetrieveAPIView):
+    serializer_class = SaleSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Sale.objects.filter(user=self.request.user)

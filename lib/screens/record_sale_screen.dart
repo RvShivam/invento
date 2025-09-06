@@ -1,5 +1,8 @@
+// lib/screens/record_sale_screen.dart
+
 import 'package:flutter/material.dart';
 import '../models/inventory_item.dart';
+import '../services/sales_service.dart';
 
 class RecordSaleScreen extends StatefulWidget {
   final Map<InventoryItem, int> selectedItems;
@@ -14,6 +17,8 @@ class _RecordSaleScreenState extends State<RecordSaleScreen> {
   final _customerNameController = TextEditingController();
   double _total = 0.0;
   DateTime _selectedDate = DateTime.now();
+  final _salesService = SalesService();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -49,6 +54,54 @@ class _RecordSaleScreenState extends State<RecordSaleScreen> {
       setState(() {
         _selectedDate = picked;
       });
+    }
+  }
+
+  Future<void> _saveSale() async {
+    if (_customerNameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a customer name.')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final itemsSold = widget.selectedItems.entries.map((entry) {
+      return {
+        'id': entry.key.id,
+        'name': entry.key.name,
+        'quantity': entry.value,
+        'price': entry.key.price,
+      };
+    }).toList();
+
+    final saleData = {
+      'customer_name': _customerNameController.text.trim(),
+      'date': _selectedDate.toIso8601String(),
+      'total_amount': _total,
+      'items_sold': itemsSold,
+    };
+
+    try {
+      await _salesService.recordSale(saleData);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sale recorded successfully!')),
+        );
+        int count = 0;
+        Navigator.of(context).popUntil((_) => count++ >= 2);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to record sale: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -177,11 +230,10 @@ class _RecordSaleScreenState extends State<RecordSaleScreen> {
           const SizedBox(width: 16),
           Expanded(
             child: ElevatedButton(
-              onPressed: () {
-                int count = 0;
-                Navigator.of(context).popUntil((_) => count++ >= 2);
-              },
-              child: const Text('Save Sale'),
+              onPressed: _isLoading ? null : _saveSale,
+              child: _isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text('Save Sale'),
             ),
           ),
         ],

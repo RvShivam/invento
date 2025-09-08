@@ -18,7 +18,8 @@ from .views import (
     CategoryListView,
     SupplierListView,
     SaleListCreateView,
-    SaleDetailView
+    SaleDetailView,
+    SalesReportView
 )
 
 urlpatterns = [
@@ -50,4 +51,5 @@ urlpatterns = [
     # --- Sales Management URLs ---
     path('sales/', SaleListCreateView.as_view(), name='sale-list-create'),
     path('sales/<int:pk>/', SaleDetailView.as_view(), name='sale-detail'),
+    path('reports/sales/', SalesReportView.as_view(), name='sales-report'),
 ]

@@ -1,6 +1,5 @@
 // lib/models/dashboard_data.dart
-import 'package:fl_chart/fl_chart.dart'; // Import the package
-
+import 'package:fl_chart/fl_chart.dart'; 
 class Order {
   final String customerName;
   final String orderId;

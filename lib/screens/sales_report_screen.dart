@@ -5,7 +5,7 @@ import 'package:invento_app/services/report_generation_service.dart';
 import '../models/sales_report_data.dart';
 import '../services/report_service.dart';
 
-// Enum to manage the selected date range
+
 enum DateRange { today, last7Days, last30Days }
 
 class SalesReportScreen extends StatefulWidget {

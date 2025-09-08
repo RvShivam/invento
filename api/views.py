@@ -18,6 +18,7 @@ from .serializers import (
 import rest_framework.serializers as serializers
 from .models import User, Item, Sale
 from django.db import transaction
+from django.db.models import Sum, Count
 # from .email_utils import send_otp_email # Uncomment for email sending
 
 class UserRegistrationView(generics.CreateAPIView):
@@ -252,23 +253,40 @@ class SaleListCreateView(generics.ListCreateAPIView):
         return Sale.objects.filter(user=self.request.user).order_by('-date')
 
     def perform_create(self, serializer):
-        # The request data should contain 'items_sold', a list of {'id', 'quantity'}
         items_data = self.request.data.get('items_sold', [])
-        
-        # Start a database transaction
+        customer_name = self.request.data.get('customer_name', 'N/A') 
+
         with transaction.atomic():
-            # First, update the stock for each item
+            sale_instance = serializer.save(user=self.request.user)
+
             for item_data in items_data:
                 try:
                     item = Item.objects.get(pk=item_data['id'], user=self.request.user)
-                    if item.quantity < item_data['quantity']:
+                    sold_quantity = item_data['quantity']
+
+                    if item.quantity < sold_quantity:
                         raise serializers.ValidationError(f"Not enough stock for {item.name}.")
-                    item.quantity -= item_data['quantity']
+                    
+                    
+                    item.quantity -= sold_quantity
+                    
+                    
+                    history_entry = {
+                        'type': 'Stock Out',
+                        'change': -sold_quantity, 
+                        'description': f'Sold to {customer_name} (Order #{sale_instance.order_id})',
+                        'date': timezone.now().strftime('%Y-%m-%d')
+                    }
+                    if not isinstance(item.stock_history, list):
+                        item.stock_history = []
+                    item.stock_history.append(history_entry)
+                    
+                    
                     item.save()
+
                 except Item.DoesNotExist:
                     raise serializers.ValidationError(f"Item with id {item_data['id']} not found.")
-
-            # If all stock updates succeed, save the sale
+                
             serializer.save(user=self.request.user)
 
 class SaleDetailView(generics.RetrieveAPIView):
@@ -277,3 +295,52 @@ class SaleDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         return Sale.objects.filter(user=self.request.user)
+    
+class SalesReportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        date_range = request.query_params.get('range', 'last7days')
+        
+        end_date = timezone.now()
+        if date_range == 'today':
+            start_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif date_range == 'last7days':
+            start_date = end_date - timedelta(days=7)
+        elif date_range == 'last30days':
+            start_date = end_date - timedelta(days=30)
+        else:
+            return Response({'error': 'Invalid date range'}, status=status.HTTP_400_BAD_REQUEST)
+
+        sales = Sale.objects.filter(user=request.user, date__range=[start_date, end_date])
+
+        report = sales.aggregate(
+            total_revenue=Sum('total_amount'),
+            number_of_sales=Count('id')
+        )
+        
+        product_sales = {}
+        for sale in sales:
+            for item in sale.items_sold:
+                name = item['name']
+                quantity = item['quantity']
+                revenue = float(item['price']) * quantity
+                if name in product_sales:
+                    product_sales[name]['quantitySold'] += quantity
+                    product_sales[name]['totalRevenue'] += revenue
+                else:
+                    product_sales[name] = {'quantitySold': quantity, 'totalRevenue': revenue}
+        
+        sorted_products = sorted(product_sales.items(), key=lambda x: x[1]['quantitySold'], reverse=True)
+        top_products = [
+            {'name': name, 'quantitySold': data['quantitySold'], 'totalRevenue': data['totalRevenue']}
+            for name, data in sorted_products[:5]
+        ]
+
+        response_data = {
+            'totalRevenue': report['total_revenue'] or 0,
+            'numberOfSales': report['number_of_sales'] or 0,
+            'topSellingProducts': top_products,
+        }
+
+        return Response(response_data)

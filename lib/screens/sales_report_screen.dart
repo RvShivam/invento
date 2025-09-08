@@ -1,10 +1,11 @@
+// lib/screens/sales_report_screen.dart
+
 import 'dart:typed_data';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:invento_app/services/report_generation_service.dart';
 import '../models/sales_report_data.dart';
 import '../services/report_service.dart';
-
 
 enum DateRange { today, last7Days, last30Days }
 
@@ -17,18 +18,25 @@ class SalesReportScreen extends StatefulWidget {
 
 class _SalesReportScreenState extends State<SalesReportScreen> {
   late Future<SalesReportData> _reportFuture;
-  DateRange _selectedRange = DateRange.last7Days; // Default selection
+  DateRange _selectedRange = DateRange.last7Days;
 
   @override
   void initState() {
     super.initState();
-    _reportFuture = ReportService().fetchSalesReport(range: _selectedRange);
+    _fetchReport();
+  }
+
+  Future<void> _fetchReport() async {
+    if (!mounted) return;
+    setState(() {
+      _reportFuture = ReportService().fetchSalesReport(range: _selectedRange);
+    });
   }
 
   void _onDateRangeSelected(DateRange range) {
     setState(() {
       _selectedRange = range;
-      _reportFuture = ReportService().fetchSalesReport(range: _selectedRange);
+      _fetchReport();
     });
   }
 
@@ -38,16 +46,15 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
     final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
 
     try {
-      String? path = await FileSaver.instance.saveFile(
+      await FileSaver.instance.saveFile(
         name: 'sales-report-$timestamp',
         bytes: bytes,
         fileExtension: 'csv',
         mimeType: MimeType.csv,
       );
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Report saved successfully to $path')),
+          const SnackBar(content: Text('Report downloaded successfully.')),
         );
       }
     } catch (e) {
@@ -93,18 +100,21 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
                 }
-                if (!snapshot.hasData) {
+                if (!snapshot.hasData || snapshot.data!.topSellingProducts.isEmpty) {
                   return const Center(child: Text('No report data available.'));
                 }
 
                 final reportData = snapshot.data!;
-                return ListView(
-                  padding: const EdgeInsets.all(16.0),
-                  children: [
-                    _buildMetrics(reportData),
-                    const SizedBox(height: 24),
-                    _buildTopSellingList(reportData.topSellingProducts),
-                  ],
+                return RefreshIndicator(
+                  onRefresh: _fetchReport,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16.0),
+                    children: [
+                      _buildMetrics(reportData),
+                      const SizedBox(height: 24),
+                      _buildTopSellingList(reportData.topSellingProducts),
+                    ],
+                  ),
                 );
               },
             ),
@@ -115,22 +125,18 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
   }
 
   Widget _buildDateRangeSelector() {
-  return SingleChildScrollView(
-    scrollDirection: Axis.horizontal,
-    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-    child: Row(
-      children: [
-        _buildFilterChip('Today', DateRange.today),
-        const SizedBox(width: 8),
-        _buildFilterChip('Last 7 Days', DateRange.last7Days),
-        const SizedBox(width: 8),
-        _buildFilterChip('Last 30 Days', DateRange.last30Days),
-      ],
-    ),
-  );
-}
-
-
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildFilterChip('Today', DateRange.today),
+          _buildFilterChip('Last 7 Days', DateRange.last7Days),
+          _buildFilterChip('Last 30 Days', DateRange.last30Days),
+        ],
+      ),
+    );
+  }
 
   Widget _buildFilterChip(String label, DateRange value) {
     final isSelected = _selectedRange == value;
@@ -150,16 +156,15 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
     );
   }
 
-Widget _buildMetrics(SalesReportData data) {
+  Widget _buildMetrics(SalesReportData data) {
     return Row(
       children: [
-        Flexible(child: _buildMetricCard('Total Revenue', '₹${data.totalRevenue.toStringAsFixed(2)}')),
+        Expanded(child: _buildMetricCard('Total Revenue', '₹${data.totalRevenue.toStringAsFixed(2)}')),
         const SizedBox(width: 16),
-        Flexible(child: _buildMetricCard('Number of Sales', data.numberOfSales.toString())),
+        Expanded(child: _buildMetricCard('Number of Sales', data.numberOfSales.toString())),
       ],
     );
   }
-
 
   Widget _buildMetricCard(String title, String value) {
     return Card(

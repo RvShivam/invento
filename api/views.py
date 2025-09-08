@@ -18,7 +18,7 @@ from .serializers import (
 import rest_framework.serializers as serializers
 from .models import User, Item, Sale
 from django.db import transaction
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count , F, Q, DecimalField
 # from .email_utils import send_otp_email # Uncomment for email sending
 
 class UserRegistrationView(generics.CreateAPIView):
@@ -302,17 +302,18 @@ class SalesReportView(APIView):
     def get(self, request, *args, **kwargs):
         date_range = request.query_params.get('range', 'last7days')
         
-        end_date = timezone.now()
+        today = timezone.localdate()
+
         if date_range == 'today':
-            start_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            sales = Sale.objects.filter(user=request.user, date__date=today)
         elif date_range == 'last7days':
-            start_date = end_date - timedelta(days=7)
+            start_date = today - timedelta(days=7)
+            sales = Sale.objects.filter(user=request.user, date__date__gte=start_date)
         elif date_range == 'last30days':
-            start_date = end_date - timedelta(days=30)
+            start_date = today - timedelta(days=30)
+            sales = Sale.objects.filter(user=request.user, date__date__gte=start_date)
         else:
             return Response({'error': 'Invalid date range'}, status=status.HTTP_400_BAD_REQUEST)
-
-        sales = Sale.objects.filter(user=request.user, date__range=[start_date, end_date])
 
         report = sales.aggregate(
             total_revenue=Sum('total_amount'),
@@ -342,5 +343,61 @@ class SalesReportView(APIView):
             'numberOfSales': report['number_of_sales'] or 0,
             'topSellingProducts': top_products,
         }
-
+        print(response_data)
         return Response(response_data)
+    
+class DashboardStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+        item_stats = Item.objects.filter(user=user).aggregate(
+            total_inventory_value=Sum(F('quantity') * F('purchase_price'), output_field=DecimalField()),
+            low_stock_items=Count('id', filter=Q(quantity__gt=0, quantity__lte=10))
+        )
+
+        sales_stats = Sale.objects.filter(user=user).aggregate(
+            total_sales=Sum('total_amount'),
+            number_of_sales=Count('id'),
+            todays_sales=Sum('total_amount', filter=Q(date__gte=today_start))
+        )
+
+        recent_orders = Sale.objects.filter(user=user).order_by('-date')[:3]
+        recent_orders_data = SaleSerializer(recent_orders, many=True).data
+        
+        total_sales = sales_stats['total_sales'] or 0
+        number_of_sales = sales_stats['number_of_sales'] or 0
+        average_order_value = (total_sales / number_of_sales) if number_of_sales > 0 else 0
+        
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        sales_trend_query = Sale.objects.filter(user=user, date__gte=thirty_days_ago).order_by('date')
+        sales_trend_data = [
+            {'x': index, 'y': float(sale.total_amount), 'date': sale.date.strftime('%d %b')}
+            for index, sale in enumerate(sales_trend_query)
+        ]
+
+        sixty_days_ago = timezone.now() - timedelta(days=60)
+
+        sales_last_30_days = Sale.objects.filter(user=user, date__gte=thirty_days_ago).aggregate(total=Sum('total_amount'))['total'] or 0
+        sales_prev_30_days = Sale.objects.filter(user=user, date__gte=sixty_days_ago, date__lt=thirty_days_ago).aggregate(total=Sum('total_amount'))['total'] or 0
+
+        sales_trend_percentage = 0
+        if sales_prev_30_days > 0:
+            sales_trend_percentage = ((sales_last_30_days - sales_prev_30_days) / sales_prev_30_days) * 100
+        elif sales_last_30_days > 0:
+            sales_trend_percentage = 100.0
+
+        stats = {
+            'totalInventoryValue': item_stats['total_inventory_value'] or 0,
+            'lowStockItems': item_stats['low_stock_items'] or 0,
+            'todaysSales': sales_stats['todays_sales'] or 0,
+            'totalSales': total_sales,
+            'averageOrderValue': average_order_value,
+            'recentOrders': recent_orders_data,
+            'salesTrendData': sales_trend_data,
+            'salesTrendPercentage': sales_trend_percentage,
+        }
+
+        return Response(stats)

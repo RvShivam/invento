@@ -19,7 +19,8 @@ from .views import (
     SupplierListView,
     SaleListCreateView,
     SaleDetailView,
-    SalesReportView
+    SalesReportView,
+    DashboardStatsView
 )
 
 urlpatterns = [
@@ -37,13 +38,16 @@ urlpatterns = [
     path('users/change-password/', ChangePasswordView.as_view(), name='change-password'),
     path('users/delete/', DeleteAccountView.as_view(), name='user-delete'),
 
+    # --- Dashboard URL ---
+    path('dashboard/stats/', DashboardStatsView.as_view(), name='dashboard-stats'),
+
     # --- Item Management URLs ---
     path('items/', ItemListCreateView.as_view(), name='item-list-create'),
     path('items/<int:pk>/', ItemDetailView.as_view(), name='item-detail'),
     path('items/sku/<str:sku>/', ItemDetailBySkuView.as_view(), name='item-detail-by-sku'),
     path('items/<int:pk>/adjust_stock/', AdjustStockView.as_view(), name='adjust-stock'),
 
-    # --- Reporting & Filtwering URLs ---
+    # --- Reporting & Filtering URLs ---
     path('categories/', CategoryListView.as_view(), name='category-list'),
     path('suppliers/', SupplierListView.as_view(), name='supplier-list'),
     path('reports/low-stock/', LowStockReportView.as_view(), name='low-stock-report'),

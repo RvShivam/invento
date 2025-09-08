@@ -1,12 +1,11 @@
-// lib/screens/dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:invento_app/screens/add_item.dart';
+import 'package:invento_app/screens/low_stock_report_screen.dart';
+import 'package:invento_app/screens/sales_management_screen.dart';
+import 'package:invento_app/screens/sales_report_screen.dart';
 import '../models/dashboard_data.dart';
 import '../services/dashboard_service.dart';
-import 'add_item.dart';
-import 'sales_management_screen.dart';
-import 'sales_report_screen.dart';
-import 'low_stock_report_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -21,7 +20,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _dashboardDataFuture = DashboardService().fetchDashboardData();
+    _fetchDashboardData();
+  }
+
+  Future<void> _fetchDashboardData() async {
+    if (!mounted) return;
+    setState(() {
+      _dashboardDataFuture = DashboardService().fetchDashboardData();
+    });
   }
 
   @override
@@ -32,45 +38,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+        automaticallyImplyLeading: false,
       ),
       body: FutureBuilder<DashboardData>(
         future: _dashboardDataFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (snapshot.hasData) {
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Error: ${snapshot.error}\nPull down to refresh.'),
+            );
+          }
+          if (snapshot.hasData) {
             final data = snapshot.data!;
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                  child:_buildInfoCard('Total Inventory Value', data.totalInventoryValue),),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                   child: _buildInfoCard('Items Low on Stock', data.lowStockItems.toString()),),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                  child:_buildInfoCard("Today's Sales", data.todaysSales),),
-                  const SizedBox(height: 32),
-                  const Text('Quick Actions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-                  _buildQuickActions(context),
-                  const SizedBox(height: 32),
-                  _buildStatsGrid(data),
-                  const SizedBox(height: 16),
-                  _buildSalesTrendCard(data),
-                  const SizedBox(height: 32),
-                  const Text('Recent Orders', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-                  _buildRecentOrders(data.recentOrders),
-                ],
+            return RefreshIndicator(
+              onRefresh: _fetchDashboardData,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(width: double.infinity, child: _buildInfoCard('Total Inventory Value', data.totalInventoryValue)),
+                    const SizedBox(height: 16),
+                    SizedBox(width: double.infinity, child: _buildInfoCard('Items Low on Stock', data.lowStockItems.toString())),
+                    const SizedBox(height: 16),
+                    SizedBox(width: double.infinity, child: _buildInfoCard("Today's Sales", data.todaysSales)),
+                    const SizedBox(height: 32),
+                    const Text('Quick Actions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+                    _buildQuickActions(context),
+                    const SizedBox(height: 32),
+                    _buildStatsGrid(data),
+                    const SizedBox(height: 16),
+                    _buildSalesTrendCard(data),
+                    const SizedBox(height: 32),
+                    const Text('Recent Orders', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+                    _buildRecentOrders(data.recentOrders),
+                  ],
+                ),
               ),
             );
           }
@@ -79,7 +88,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
-  
 
   Widget _buildInfoCard(String title, String value) {
     return Card(
@@ -104,61 +112,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         Row(
           children: [
-            // 1. Add New Item
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const AddItemScreen()),
-                  );
-                },
-                child: const Text('Add Item'),
-              ),
-            ),
+            Expanded(child: ElevatedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AddItemScreen())), child: const Text('Add Item'))),
             const SizedBox(width: 16),
-            // 2. Low Stock Report
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LowStockReportScreen()),
-                  );
-                },
-                child: const Text('Low Stock'),
-              ),
-            ),
+            Expanded(child: ElevatedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LowStockReportScreen())), child: const Text('Low Stock'))),
           ],
         ),
         const SizedBox(height: 16),
         Row(
           children: [
-            // 3. Sales Report
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const SalesReportScreen()),
-                  );
-                },
-                child: const Text('Sales Report'),
-              ),
-            ),
+            Expanded(child: ElevatedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SalesReportScreen())), child: const Text('Sales Report'))),
             const SizedBox(width: 16),
-            // 4. Manage Sales
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const SalesManagementScreen()),
-                  );
-                },
-                child: const Text('Manage Sales'),
-              ),
-            ),
+            Expanded(child: ElevatedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SalesManagementScreen())), child: const Text('Manage Sales'))),
           ],
         ),
       ],
@@ -194,6 +158,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildSalesTrendCard(DashboardData data) {
+    final String trendText = '${data.salesTrendPercentage >= 0 ? '+' : ''}${data.salesTrendPercentage.toStringAsFixed(1)}%';
+    final Color trendColor = data.salesTrendPercentage >= 0 ? Colors.green : Colors.red;
+
     return Card(
       color: const Color(0xFF1C1F2E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -204,11 +171,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             const Text('Sales Trend', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            const Row(
+            Row(
               children: [
-                Text('+15%', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green)),
-                SizedBox(width: 8),
-                Text('Last 3 Months', style: TextStyle(color: Colors.white70)),
+                Text(trendText, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: trendColor)),
+                const SizedBox(width: 8),
+                const Text('vs Previous 30 Days', style: TextStyle(color: Colors.white70)),
               ],
             ),
             const SizedBox(height: 24),
@@ -222,15 +189,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildLineChart(List<FlSpot> spots) {
+  Widget _buildLineChart(List<(double x, double y, String date)> trendData) {
+    final spots = trendData.map((d) => FlSpot(d.$1, d.$2)).toList();
+
     return LineChart(
       LineChartData(
         gridData: const FlGridData(show: false),
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
           show: true,
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
@@ -238,23 +207,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               reservedSize: 30,
               interval: 1,
               getTitlesWidget: (value, meta) {
-                const style = TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 12);
-                Widget text;
-                switch (value.toInt()) {
-                  case 2:
-                    text = const Text('Mar', style: style);
-                    break;
-                  case 6:
-                    text = const Text('Jul', style: style);
-                    break;
-                  case 10:
-                    text = const Text('Nov', style: style);
-                    break;
-                  default:
-                    text = const Text('', style: style);
-                    break;
+                final index = value.toInt();
+                if (index >= 0 && index < trendData.length) {
+                  if (index % 5 == 0 || index == 0 || index == trendData.length - 1) {
+                    return SideTitleWidget(
+                      axisSide: meta.axisSide,
+                      child: Text(trendData[index].$3, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                    );
+                  }
                 }
-                return SideTitleWidget(axisSide: meta.axisSide, child: text);
+                return Container();
               },
             ),
           ),
@@ -285,6 +247,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildRecentOrders(List<Order> orders) {
+    if (orders.isEmpty) {
+      return Card(
+        color: const Color(0xFF1C1F2E),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16.0),
+          child: const Center(child: Text('No recent orders yet.', style: TextStyle(color: Colors.white70))),
+        ),
+      );
+    }
     return Card(
       color: const Color(0xFF1C1F2E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

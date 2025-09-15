@@ -39,6 +39,7 @@ class AuthService {
       final data = json.decode(response.body);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('access_token', data['access']);
+      await prefs.setInt('user_id', data['user']['id']);
     }
     return {'statusCode': response.statusCode, 'data': json.decode(response.body)};
   }

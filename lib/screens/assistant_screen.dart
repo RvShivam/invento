@@ -19,6 +19,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
   final SpeechToText _speechToText = SpeechToText();
   bool _speechEnabled = false;
   bool _isListening = false;
+  String _currentLanguageCode = 'en'; 
 
   @override
   void initState() {
@@ -33,15 +34,18 @@ class _AssistantScreenState extends State<AssistantScreen> {
   }
 
   void _startListening() async {
-    await _speechToText.listen(onResult: (result) {
-      setState(() {
-        _controller.text = result.recognizedWords;
-      });
-      if (result.finalResult) {
-        _sendMessage();
-        _stopListening();
-      }
-    });
+    await _speechToText.listen(
+      onResult: (result) {
+        setState(() {
+          _controller.text = result.recognizedWords;
+        });
+        if (result.finalResult) {
+          _sendMessage();
+          _stopListening();
+        }
+      },
+      localeId: _currentLanguageCode,
+    );
     setState(() => _isListening = true);
   }
 
@@ -70,14 +74,16 @@ class _AssistantScreenState extends State<AssistantScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final botResponses = await _rasaService.sendMessage(text);
+      final botResponses = await _rasaService.sendMessage(text, _currentLanguageCode);
       for (var message in botResponses) {
         _addMessage(message);
       }
     } catch (e) {
       _addBotMessage("⚠️ Sorry, something went wrong. Please try again.");
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -90,6 +96,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
         elevation: 0,
         title: const Text("Invento Assistant", style: TextStyle(color: Colors.white)),
         centerTitle: true,
+        actions: [
+          _buildLanguageToggle(),
+        ],
       ),
       body: Column(
         children: [
@@ -105,6 +114,33 @@ class _AssistantScreenState extends State<AssistantScreen> {
           if (_isLoading) _buildTypingIndicator(),
           _buildInputArea(),
         ],
+      ),
+    );
+  }
+
+  // A new widget for the language selection toggle
+  Widget _buildLanguageToggle() {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: TextButton(
+        onPressed: () {
+          setState(() {
+            _currentLanguageCode = _currentLanguageCode == 'en' ? 'hi' : 'en';
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(_currentLanguageCode == 'en'
+                  ? "Switched to English"
+                  : "हिंदी में स्विच किया गया"),
+              duration: const Duration(seconds: 1),
+            ));
+          });
+        },
+        child: Text(
+          _currentLanguageCode == 'en' ? "EN" : "HI",
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }

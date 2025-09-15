@@ -4,6 +4,7 @@ import random
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.contrib.postgres.search import TrigramSimilarity
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
@@ -17,7 +18,7 @@ from .serializers import (
 )
 import rest_framework.serializers as serializers
 from .models import User, Item, Sale
-from django.db import transaction
+from django.db import transaction,models
 from django.db.models import Sum, Count , F, Q, DecimalField
 # from .email_utils import send_otp_email # Uncomment for email sending
 
@@ -160,7 +161,19 @@ class ItemListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Item.objects.filter(user=self.request.user)
+        queryset = Item.objects.filter(user=self.request.user)
+        
+        search_query = self.request.query_params.get('search', None)
+        
+        if search_query:
+            queryset = queryset.annotate(
+                name_similarity=TrigramSimilarity('name', search_query),
+                sku_similarity=TrigramSimilarity('sku', search_query),
+            ).filter(
+                models.Q(name_similarity__gt=0.1) | models.Q(sku_similarity__gt=0.1)
+            ).order_by('-name_similarity', '-sku_similarity') 
+            
+        return queryset
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -177,7 +190,6 @@ class LowStockReportView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Filter items for the current user that have a quantity of 10 or less
         return Item.objects.filter(user=self.request.user, quantity__lte=10)
 
     def list(self, request, *args, **kwargs):
@@ -343,7 +355,6 @@ class SalesReportView(APIView):
             'numberOfSales': report['number_of_sales'] or 0,
             'topSellingProducts': top_products,
         }
-        print(response_data)
         return Response(response_data)
     
 class DashboardStatsView(APIView):
